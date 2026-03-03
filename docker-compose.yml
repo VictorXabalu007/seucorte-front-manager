@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  admin:
+    container_name: barberflow_admin
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+      args:
+        - VITE_API_URL=${VITE_API_URL}
+    ports:
+      - "5173:5173"
+    restart: unless-stopped
+    networks:
+      - barberflow_network
+
+networks:
+  barberflow_network:
+    driver: bridge

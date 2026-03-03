@@ -1,0 +1,116 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 165 5% 7%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 165 5% 7%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 165 5% 7%;
+
+    --primary: 77 95% 54%;
+    --primary-foreground: 165 5% 7%;
+
+    --secondary: 77 100% 92%;
+    --secondary-foreground: 165 5% 10%;
+
+    --muted: 165 5% 96%;
+    --muted-foreground: 165 5% 45.1%;
+
+    --accent: 251 100% 71%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 165 5% 90%;
+    --input: 165 5% 90%;
+    --ring: 77 95% 54%;
+
+    --radius: 1rem;
+
+    --chart-1: 77 95% 54%;
+    --chart-2: 251 100% 71%;
+    --chart-3: 165 5% 15%;
+    --chart-4: 77 100% 80%;
+    --chart-5: 251 100% 85%;
+  }
+  .dark {
+    --background: 165 5% 7%;
+    --foreground: 0 0% 100%;
+
+    --card: 165 5% 9%;
+    --card-foreground: 0 0% 100%;
+
+    --popover: 165 5% 9%;
+    --popover-foreground: 0 0% 100%;
+
+    --primary: 77 95% 54%;
+    --primary-foreground: 165 5% 7%;
+
+    --secondary: 165 5% 15%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 165 5% 15%;
+    --muted-foreground: 165 5% 63.9%;
+
+    --accent: 77 95% 54% / 0.1;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 165 5% 20%;
+    --input: 165 5% 20%;
+    --ring: 77 95% 54%;
+
+    --chart-1: 77 95% 54%;
+    --chart-2: 77 95% 54% / 0.1;
+    --chart-3: 0 0% 100%;
+    --chart-4: 77 100% 40%;
+    --chart-5: 77 95% 54%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground transition-colors duration-300;
+  }
+}
+
+.invisible-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.invisible-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #10b981;
+}
+
+/* Firefox */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #334155 transparent;
+}

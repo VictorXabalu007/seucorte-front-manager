@@ -19,6 +19,7 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import { MoneyInput } from "@/components/ui/money-input"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { Meta, MetaFormData, MetaType, MetaStatus } from "../types"
@@ -156,27 +157,26 @@ export function GoalSheet({
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="targetValue"
-                  render={({ field }) => (
-                    <FormItem>
-                      <label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">
-                        Valor Alvo
-                      </label>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          placeholder="0.00"
-                          {...field}
-                          onChange={(e) => field.onChange(Number(e.target.value))}
-                          className="h-12 bg-card/40 border-border/50 rounded-2xl focus-visible:ring-primary/20 focus-visible:border-primary font-bold tabular-nums"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                  <FormField
+                    control={form.control}
+                    name="targetValue"
+                    render={({ field }) => (
+                      <FormItem>
+                        <label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">
+                          Valor Alvo
+                        </label>
+                        <FormControl>
+                          <MoneyInput
+                            placeholder="R$ 0,00"
+                            value={field.value}
+                            onChange={(val) => field.onChange(val)}
+                            className="h-12 bg-card/40 border-border/50 rounded-2xl focus-visible:ring-primary/20 focus-visible:border-primary font-bold tabular-nums"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
               </div>
 
               <div className="grid grid-cols-2 gap-4">

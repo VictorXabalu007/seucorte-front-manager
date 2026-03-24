@@ -1,5 +1,22 @@
 export type CommissionType = "PERCENTAGE" | "FIXED"
 
+export interface BarberSchedule {
+  dayOfWeek: number
+  isWorking: boolean
+  startTime1?: string
+  endTime1?: string
+  startTime2?: string
+  endTime2?: string
+}
+
+export interface BarberBlock {
+  date: string
+  startTime?: string
+  endTime?: string
+  type: "VACATION" | "DAY_OFF" | "BLOCK"
+  reason?: string
+}
+
 export interface Barber {
   id: string
   name: string
@@ -11,9 +28,10 @@ export interface Barber {
   color: string
   commissionType: CommissionType
   commissionValue: number
-  cutPrice: number
   isActive: boolean
   serviceIds: string[]
+  schedules: BarberSchedule[]
+  blocks: BarberBlock[]
   createdAt: string
 }
 
@@ -25,8 +43,9 @@ export interface BarberFormData {
   bio?: string
   color: string
   commissionType: CommissionType
-  commissionValue: string // Handle as string for form input
-  cutPrice: string // Handle as string for form input
+  commissionValue: number
   isActive: boolean
   serviceIds: string[]
+  schedules: BarberSchedule[]
+  blocks: BarberBlock[]
 }

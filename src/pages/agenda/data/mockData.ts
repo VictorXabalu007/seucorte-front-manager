@@ -17,12 +17,12 @@ export const MOCK_SERVICES: Service[] = [
   { id: "s7", name: "Sobrancelha", duration: 15, price: 20 },
 ]
 
-export const TIME_SLOTS = Array.from({ length: 34 }, (_, i) => {
-  const totalMinutes = 7 * 60 + i * 30 // Starting from 07:00, in 30min increments
+export const TIME_SLOTS = Array.from({ length: 102 }, (_, i) => {
+  const totalMinutes = 7 * 60 + i * 10 // Starting from 07:00, in 10min increments
   const h = Math.floor(totalMinutes / 60).toString().padStart(2, "0")
   const m = (totalMinutes % 60).toString().padStart(2, "0")
   return `${h}:${m}`
-}) // 07:00 to 23:30
+}) // 07:00 to 23:50
 
 const today = new Date()
 const mkDate = (daysOffset: number) => {

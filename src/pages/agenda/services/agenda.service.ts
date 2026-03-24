@@ -1,89 +1,69 @@
+import { format } from "date-fns"
+import { ptBR } from "date-fns/locale"
 import api from "@/lib/api"
 import type { Appointment, Professional, Service } from "../types"
-import { MOCK_APPOINTMENTS, MOCK_PROFESSIONALS, MOCK_SERVICES } from "../data/mockData"
 
-// Toggle this to false when the real API is ready
-const USE_MOCK = true
+const mapAppointment = (a: any): Appointment => ({
+  id: a.id,
+  clientName: a.clientName,
+  clientPhone: a.clientPhone,
+  professionalId: a.professionalId,
+  professionalName: a.professional?.user?.name || "N/A",
+  serviceId: a.serviceId,
+  serviceName: a.service?.name || "N/A",
+  serviceDuration: a.serviceDuration,
+  date: format(new Date(a.startTime), "dd MMM, yyyy", { locale: ptBR }),
+  rawDate: new Date(a.startTime),
+  startTime: format(new Date(a.startTime), "HH:mm"),
+  endTime: format(new Date(a.endTime), "HH:mm"),
+  status: a.status,
+  paymentStatus: a.paymentStatus,
+  amount: Number(a.amount),
+  notes: a.notes,
+  initials: a.clientName.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2),
+})
 
 export const agendaService = {
-  getAppointments: async (params?: { startDate?: string; endDate?: string; professionalId?: string }): Promise<Appointment[]> => {
-    if (USE_MOCK) {
-      // Simulate network delay
-      await new Promise(r => setTimeout(r, 400))
-      return MOCK_APPOINTMENTS
-    }
+  getAppointments: async (params?: { startDate?: string; endDate?: string; professionalId?: string; unidadeId?: string }): Promise<Appointment[]> => {
     const res = await api.get("/appointments", { params })
-    return res.data
+    return res.data.map(mapAppointment)
   },
 
-  getProfessionals: async (): Promise<Professional[]> => {
-    if (USE_MOCK) {
-      await new Promise(r => setTimeout(r, 200))
-      return MOCK_PROFESSIONALS
+  getAppointmentsPaginated: async (params: any): Promise<{ data: Appointment[], total: number, pages: number }> => {
+    const res = await api.get("/appointments", { params })
+    return {
+      ...res.data,
+      data: res.data.data.map(mapAppointment)
     }
-    const res = await api.get("/professionals")
-    return res.data
   },
 
-  getServices: async (): Promise<Service[]> => {
-    if (USE_MOCK) {
-      await new Promise(r => setTimeout(r, 200))
-      return MOCK_SERVICES
-    }
-    const res = await api.get("/services")
+  getProfessionals: async (unidadeId?: string): Promise<Professional[]> => {
+    const res = await api.get("/professionals", { params: { unidadeId } })
+    // Mapeamento para o formato esperado pelo frontend
+    return res.data.map((p: any) => ({
+      id: p.id,
+      name: p.user?.name || "N/A",
+      specialty: p.specialty,
+      color: p.color || "#10B981", // Usa a cor do banco ou a cor padrão verde
+    }))
+  },
+
+  getServices: async (unidadeId?: string): Promise<Service[]> => {
+    const res = await api.get("/services", { params: { unidadeId } })
     return res.data
   },
 
   createAppointment: async (data: Partial<Appointment>): Promise<Appointment> => {
-    if (USE_MOCK) {
-      await new Promise(r => setTimeout(r, 600))
-      const newApt: Appointment = {
-        id: `a${Date.now()}`,
-        clientName: data.clientName || "",
-        clientPhone: data.clientPhone,
-        professionalId: data.professionalId || "",
-        professionalName: MOCK_PROFESSIONALS.find(p => p.id === data.professionalId)?.name || "",
-        serviceId: data.serviceId || "",
-        serviceName: MOCK_SERVICES.find(s => s.id === data.serviceId)?.name || "",
-        serviceDuration: MOCK_SERVICES.find(s => s.id === data.serviceId)?.duration || 30,
-        date: data.date || "",
-        rawDate: data.rawDate || new Date(),
-        startTime: data.startTime || "09:00",
-        endTime: data.endTime || "09:30",
-        status: data.status || "SCHEDULED",
-        paymentStatus: data.paymentStatus || "PENDING",
-        amount: data.amount || 0,
-        notes: data.notes,
-        initials: (data.clientName || "?").split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2),
-      }
-      MOCK_APPOINTMENTS.push(newApt)
-      return newApt
-    }
     const res = await api.post("/appointments", data)
     return res.data
   },
 
   updateAppointment: async (id: string, data: Partial<Appointment>): Promise<Appointment> => {
-    if (USE_MOCK) {
-      await new Promise(r => setTimeout(r, 600))
-      const idx = MOCK_APPOINTMENTS.findIndex(a => a.id === id)
-      if (idx >= 0) {
-        MOCK_APPOINTMENTS[idx] = { ...MOCK_APPOINTMENTS[idx], ...data }
-        return MOCK_APPOINTMENTS[idx]
-      }
-      throw new Error("Appointment not found")
-    }
     const res = await api.patch(`/appointments/${id}`, data)
     return res.data
   },
 
   deleteAppointment: async (id: string): Promise<void> => {
-    if (USE_MOCK) {
-      await new Promise(r => setTimeout(r, 400))
-      const idx = MOCK_APPOINTMENTS.findIndex(a => a.id === id)
-      if (idx >= 0) MOCK_APPOINTMENTS.splice(idx, 1)
-      return
-    }
     await api.delete(`/appointments/${id}`)
   },
 }

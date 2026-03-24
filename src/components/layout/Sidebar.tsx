@@ -10,6 +10,7 @@ import {
   Calendar,
   Users,
   DollarSign,
+  PackageOpen,
   Percent,
   Target,
   MapPin,
@@ -105,6 +106,7 @@ export const Sidebar = ({ isMobile }: { isMobile?: boolean }) => {
         <SidebarItem icon={Calendar} label="Agenda" href="/agenda" />
         <SidebarItem icon={Users} label="Clientes" href="/clientes" />
         <SidebarItem icon={Scissors} label="Serviços" href="/servicos" />
+        <SidebarItem icon={PackageOpen} label="Combos" href="/combos" />
         <SidebarItem icon={Package} label="Estoque" href="/estoque" />
         <SidebarItem icon={Star} label="Barbeiros" href="/barbeiros" />
         

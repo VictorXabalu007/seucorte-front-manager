@@ -1,60 +1,45 @@
+import api from "@/lib/api"
 import type { Cliente } from "../types/cliente"
 
 class ClienteService {
-  async getClientes(): Promise<Cliente[]> {
-    // Simulating API call
-    return this.getMockClientes()
+  async getClientes(params?: { search?: string; page?: number; limit?: number; unidadeId?: string }): Promise<{ data: Cliente[], total: number, pages: number }> {
+    const res = await api.get("/clientes", { params })
+    return res.data
   }
 
-  getMockClientes(): Cliente[] {
-    return [
-      {
-        id: "1",
-        name: "João Silva",
-        email: "joao@example.com",
-        phone: "(11) 99999-9999",
-        type: "pro",
-        planId: "2",
-        lastVisit: "2024-03-01",
-        totalSpent: 450.00,
-        appointmentsCount: 12,
-        status: "active"
-      },
-      {
-        id: "2",
-        name: "Maria Oliveira",
-        email: "maria@example.com",
-        phone: "(11) 88888-8888",
-        type: "customer",
-        lastVisit: "2024-02-15",
-        totalSpent: 85.00,
-        appointmentsCount: 2,
-        status: "active"
-      },
-      {
-        id: "3",
-        name: "Pedro Santos",
-        email: "pedro@example.com",
-        phone: "(11) 77777-7777",
-        type: "pro",
-        planId: "1",
-        lastVisit: "2024-02-28",
-        totalSpent: 280.00,
-        appointmentsCount: 8,
-        status: "active"
-      },
-      {
-        id: "4",
-        name: "Lucas Ferreira",
-        email: "lucas@example.com",
-        phone: "(11) 98888-7777",
-        type: "customer",
-        lastVisit: "2024-01-10",
-        totalSpent: 45.00,
-        appointmentsCount: 1,
-        status: "inactive"
-      }
-    ]
+  async getCliente(id: string): Promise<Cliente> {
+    const res = await api.get(`/clientes/${id}`)
+    return res.data
+  }
+
+  async getClienteProfile(id: string): Promise<Cliente & { stats: any }> {
+    const res = await api.get(`/clientes/${id}/profile`)
+    return res.data
+  }
+
+  async createCliente(data: Partial<Cliente>): Promise<Cliente> {
+    const res = await api.post("/clientes", data)
+    return res.data
+  }
+
+  async updateCliente(id: string, data: Partial<Cliente>): Promise<Cliente> {
+    const res = await api.patch(`/clientes/${id}`, data)
+    return res.data
+  }
+
+  async deleteCliente(id: string): Promise<void> {
+    await api.delete(`/clientes/${id}`)
+  }
+
+  async getStats(unidadeId?: string): Promise<{
+    total: number;
+    vipTotal: number;
+    blockedTotal: number;
+    totalRevenue: number;
+    avgSpent: number;
+  }> {
+    const res = await api.get("/clientes/stats", { params: { unidadeId } })
+    return res.data
   }
 }
 

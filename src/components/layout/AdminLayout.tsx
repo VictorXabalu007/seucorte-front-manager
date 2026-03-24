@@ -1,5 +1,6 @@
 import { useEffect } from "react"
-import { useLocation } from "react-router-dom"
+import { getUser } from "@/lib/auth"
+import { useLocation, useNavigate } from "react-router-dom"
 import { Sidebar } from "./Sidebar"
 import { Header } from "./Header"
 import { BottomNav } from "./BottomNav"
@@ -8,11 +9,8 @@ import { useLoading } from "@/components/loading-provider"
 import { useState } from "react"
 import { 
   Sheet, 
-  SheetContent, 
-  SheetHeader, 
-  SheetTitle 
+  SheetContent,
 } from "@/components/ui/sheet"
-import { Scissors } from "lucide-react"
 
 interface AdminLayoutProps {
   children: React.ReactNode
@@ -20,6 +18,7 @@ interface AdminLayoutProps {
 
 export function AdminLayout({ children }: AdminLayoutProps) {
   const { setIsLoading } = useLoading()
+  const navigate = useNavigate()
   const location = useLocation()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
@@ -28,7 +27,15 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     setIsLoading(true)
     // Fechar menu mobile na troca de rota
     setIsMobileMenuOpen(false)
-  }, [location.pathname, setIsLoading])
+
+    // Verificar troca obrigatória de senha
+    const user = getUser()
+    if (user) {
+      if (user.forcePasswordChange && location.pathname !== "/primeiro-acesso") {
+        navigate("/primeiro-acesso")
+      }
+    }
+  }, [location.pathname, setIsLoading, navigate])
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#fafafa] dark:bg-[#0f172a] font-sans antialiased text-slate-900 dark:text-slate-100">

@@ -29,13 +29,15 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { Checkbox } from "@/components/ui/checkbox"
+import { MoneyInput } from "@/components/ui/money-input"
 import type { Service, ServiceCategory, ServiceFormData } from "../types"
 
 const serviceSchema = z.object({
   name: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
   description: z.string().optional(),
   duration: z.string().min(1, "Duração é obrigatória"),
-  price: z.string().min(1, "Preço é obrigatório"),
+  price: z.number().min(0.01, "Preço deve ser maior que zero"),
   category: z.enum(["Cabelo", "Barba", "Combo", "Tratamento", "Outros"]),
   isActive: z.boolean(),
   barberIds: z.array(z.string()),
@@ -64,7 +66,7 @@ export function ServiceSheet({
       name: "",
       description: "",
       duration: "30",
-      price: "",
+      price: 0,
       category: "Outros",
       isActive: true,
       barberIds: [],
@@ -78,7 +80,7 @@ export function ServiceSheet({
           name: service.name || "",
           description: service.description || "",
           duration: (service.duration ?? 30).toString(),
-          price: (service.price ?? 0).toString(),
+          price: typeof service.price === "number" ? service.price : parseFloat(service.price as any) || 0,
           category: service.category || "Outros",
           isActive: service.isActive ?? true,
           barberIds: service.barberIds || [],
@@ -88,7 +90,7 @@ export function ServiceSheet({
           name: "",
           description: "",
           duration: "30",
-          price: "",
+          price: 0,
           category: "Outros",
           isActive: true,
           barberIds: [],
@@ -149,11 +151,10 @@ export function ServiceSheet({
                         Preço (R$)
                       </label>
                       <FormControl>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          placeholder="0,00"
-                          {...field}
+                        <MoneyInput
+                          placeholder="R$ 0,00"
+                          value={field.value}
+                          onChange={field.onChange}
                           className="h-12 bg-card/40 border-border/50 rounded-2xl focus-visible:ring-primary/20 focus-visible:border-primary font-bold"
                         />
                       </FormControl>
@@ -226,6 +227,30 @@ export function ServiceSheet({
                       />
                     </FormControl>
                     <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="isActive"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 p-4 rounded-2xl bg-card border border-border/50">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        className="size-5 rounded"
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none cursor-pointer" onClick={() => field.onChange(!field.value)}>
+                      <label className="text-sm font-bold cursor-pointer">
+                        Serviço Ativo
+                      </label>
+                      <p className="text-[10px] text-muted-foreground font-medium">
+                        Se inativo, este serviço não aparecerá para os clientes agendarem.
+                      </p>
+                    </div>
                   </FormItem>
                 )}
               />

@@ -32,9 +32,12 @@ import { clienteService } from "../clientes/services/cliente.service"
 import type { Plano } from "./types/plano"
 import type { Cliente } from "../clientes/types/cliente"
 import { useLoading } from "@/components/loading-provider"
+import { getActiveUnidadeId } from "@/lib/auth"
+import { toast } from "sonner"
 
 export default function PlanosPage() {
   const { setIsLoading } = useLoading()
+  const unidadeId = getActiveUnidadeId()
   const [planos, setPlanos] = useState<Plano[]>([])
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [isInternalLoading, setIsInternalLoading] = useState(true)
@@ -48,17 +51,20 @@ export default function PlanosPage() {
 
   useEffect(() => {
     const loadData = async () => {
+      if (!unidadeId) return
+
       setIsLoading(true)
       setIsInternalLoading(true)
       try {
         const [planosData, clientesData] = await Promise.all([
-          planoService.getPlans(),
-          clienteService.getClientes()
+          planoService.getPlans(unidadeId),
+          clienteService.getClientes({ unidadeId })
         ])
         setPlanos(planosData)
-        setClientes(clientesData)
+        setClientes(clientesData.data || [])
       } catch (error) {
         console.error("Failed to load planos data:", error)
+        toast.error("Erro ao carregar dados dos planos")
       } finally {
         setIsLoading(false)
         setIsInternalLoading(false)
@@ -66,10 +72,12 @@ export default function PlanosPage() {
     }
 
     loadData()
-  }, [])
+  }, [unidadeId])
 
   const getClientesInPlan = (planId: string) => {
-    return clientes.filter((c: Cliente) => c.planId === planId)
+    return clientes.filter((c: Cliente) => 
+      c.assinaturas?.some(a => a.plano.id === planId && a.isActive)
+    )
   }
 
   const selectedPlan = planos.find((p: Plano) => p.id === selectedPlanId)
@@ -86,12 +94,17 @@ export default function PlanosPage() {
   const handleConfirmDelete = async () => {
     if (!planoToDelete) return
     
-    // In a real app, call service here
-    console.log("Deleting plano:", planoToDelete.id)
-    
-    setPlanos(prev => prev.filter(p => p.id !== planoToDelete.id))
-    setIsDeleteModalOpen(false)
-    setPlanoToDelete(null)
+    try {
+      await planoService.deletePlan(planoToDelete.id)
+      setPlanos(prev => prev.filter(p => p.id !== planoToDelete.id))
+      toast.success("Plano excluído com sucesso")
+    } catch (error) {
+      console.error("Failed to delete plano:", error)
+      toast.error("Erro ao excluir plano")
+    } finally {
+      setIsDeleteModalOpen(false)
+      setPlanoToDelete(null)
+    }
   }
 
   const handleEditClick = (plano: Plano) => {
@@ -104,20 +117,25 @@ export default function PlanosPage() {
     setIsPlanoSheetOpen(true)
   }
 
-  const handleSavePlano = (data: any) => {
-    if (planoToEdit) {
-      // Edit mode
-      setPlanos(prev => prev.map(p => p.id === planoToEdit.id ? { ...p, ...data } : p))
-    } else {
-      // Create mode
-      const newPlano: Plano = {
-        id: Math.random().toString(36).substring(7),
-        ...data,
+  const handleSavePlano = async (data: any) => {
+    try {
+      if (planoToEdit) {
+        // Edit mode
+        const updated = await planoService.updatePlan(planoToEdit.id, data)
+        setPlanos(prev => prev.map(p => p.id === planoToEdit.id ? updated : p))
+        toast.success("Plano atualizado com sucesso")
+      } else {
+        // Create mode
+        const created = await planoService.createPlan({ ...data, unidadeId: unidadeId! })
+        setPlanos(prev => [created, ...prev])
+        toast.success("Plano criado com sucesso")
       }
-      setPlanos(prev => [...prev, newPlano])
+      setIsPlanoSheetOpen(false)
+      setPlanoToEdit(null)
+    } catch (error) {
+      console.error("Failed to save plano:", error)
+      toast.error("Erro ao salvar plano")
     }
-    setIsPlanoSheetOpen(false)
-    setPlanoToEdit(null)
   }
 
   return (
@@ -152,91 +170,120 @@ export default function PlanosPage() {
             Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="h-80 sm:h-96 rounded-3xl border-2 border-dashed border-border flex items-center justify-center animate-pulse bg-muted/20" />
             ))
-          ) : planos.map((plano: Plano) => {
-            const planClientes = getClientesInPlan(plano.id)
-            return (
-              <div key={plano.id} className="bg-card/40 rounded-3xl border border-border shadow-sm overflow-hidden backdrop-blur-sm flex flex-col group hover:border-primary/30 transition-all">
-                <div className="p-5 sm:p-6 space-y-4 flex-1">
-                  <div className="flex justify-between items-start">
-                    <div className="size-10 sm:size-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all">
-                      <CreditCard className="size-5 sm:size-6" />
+          ) : planos.length > 0 ? (
+            planos.map((plano: Plano) => {
+              const planClientes = getClientesInPlan(plano.id)
+              return (
+                <div key={plano.id} className="bg-card/40 rounded-3xl border border-border shadow-sm overflow-hidden backdrop-blur-sm flex flex-col group hover:border-primary/30 transition-all">
+                  <div className="p-5 sm:p-6 space-y-4 flex-1">
+                    <div className="flex justify-between items-start">
+                      <div className="size-10 sm:size-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all">
+                        <CreditCard className="size-5 sm:size-6" />
+                      </div>
+                      <Badge 
+                        variant="outline" 
+                        className={cn(
+                          "rounded-lg font-bold text-[10px] sm:text-xs",
+                          plano.isActive 
+                            ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-transparent"
+                            : "bg-slate-50 text-slate-600 border-slate-100 dark:bg-slate-500/10 dark:text-slate-400 dark:border-transparent"
+                        )}
+                      >
+                        {plano.isActive ? "Ativo" : "Pausado"}
+                      </Badge>
                     </div>
-                    <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-transparent rounded-lg font-bold text-[10px] sm:text-xs">
-                      Ativo
-                    </Badge>
-                  </div>
-                  
-                  <div>
-                    <h2 className="text-lg sm:text-xl font-black tracking-tight">{plano.name}</h2>
-                    <div className="flex items-baseline gap-1 mt-1">
-                      <span className="text-xl sm:text-2xl font-black">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(plano.price)}</span>
-                      <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">/mês</span>
+                    
+                    <div>
+                      <h2 className="text-lg sm:text-xl font-black tracking-tight">{plano.name}</h2>
+                      <div className="flex items-baseline gap-1 mt-1">
+                        <span className="text-xl sm:text-2xl font-black">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(plano.price)}</span>
+                        <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">/mês</span>
+                      </div>
+                      <p className="text-xs sm:text-sm text-muted-foreground font-medium mt-3 leading-relaxed line-clamp-2">
+                        {plano.description}
+                      </p>
                     </div>
-                    <p className="text-xs sm:text-sm text-muted-foreground font-medium mt-3 leading-relaxed line-clamp-2">
-                      {plano.description}
-                    </p>
+
+                    <div className="space-y-2 pt-2 sm:pt-4">
+                      {plano.features.slice(0, 3).map((feature: string, idx: number) => (
+                        <div key={idx} className="flex items-center gap-2.5">
+                          <CheckCircle2 className="size-3.5 sm:size-4 text-primary shrink-0" />
+                          <span className="text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 truncate">{feature}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="pt-4 sm:pt-6 mt-auto border-t border-border/50">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Users className="size-3.5 sm:size-4 text-muted-foreground" />
+                          <span className="text-[10px] sm:text-xs font-bold text-foreground">
+                            {planClientes.length} {planClientes.length === 1 ? 'membro' : 'membros'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <TrendingUp className="size-3 text-emerald-500" />
+                          <span className="text-[9px] font-black text-emerald-500 uppercase">+12%</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="space-y-2 pt-2 sm:pt-4">
-                    {plano.features.slice(0, 3).map((feature: string, idx: number) => (
-                      <div key={idx} className="flex items-center gap-2.5">
-                        <CheckCircle2 className="size-3.5 sm:size-4 text-primary shrink-0" />
-                        <span className="text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 truncate">{feature}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="pt-4 sm:pt-6 mt-auto border-t border-border/50">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Users className="size-3.5 sm:size-4 text-muted-foreground" />
-                        <span className="text-[10px] sm:text-xs font-bold text-foreground">
-                          {planClientes.length} {planClientes.length === 1 ? 'membro' : 'membros'}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <TrendingUp className="size-3 text-emerald-500" />
-                        <span className="text-[9px] font-black text-emerald-500 uppercase">+12%</span>
-                      </div>
+                  <div className="p-3 sm:p-4 bg-muted/30 border-t border-border/50 flex items-center justify-between">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 sm:h-9 text-[10px] sm:text-xs font-bold text-slate-500 hover:text-foreground"
+                      onClick={() => {
+                        setSelectedPlanId(plano.id)
+                        setIsSheetOpen(true)
+                        setMemberSearch("")
+                      }}
+                    >
+                      Ver Membros
+                    </Button>
+                    <div className="flex items-center gap-0.5">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="size-8 rounded-lg"
+                        onClick={() => handleEditClick(plano)}
+                      >
+                        <Edit2 className="size-3.5" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="size-8 rounded-lg hover:text-destructive"
+                        onClick={() => handleDeleteClick(plano)}
+                      >
+                        <Trash2 className="size-3.5" />
+                      </Button>
                     </div>
                   </div>
                 </div>
-
-                <div className="p-3 sm:p-4 bg-muted/30 border-t border-border/50 flex items-center justify-between">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="h-8 sm:h-9 text-[10px] sm:text-xs font-bold text-slate-500 hover:text-foreground"
-                    onClick={() => {
-                      setSelectedPlanId(plano.id)
-                      setIsSheetOpen(true)
-                      setMemberSearch("")
-                    }}
-                  >
-                    Ver Membros
-                  </Button>
-                  <div className="flex items-center gap-0.5">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="size-8 rounded-lg"
-                      onClick={() => handleEditClick(plano)}
-                    >
-                      <Edit2 className="size-3.5" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="size-8 rounded-lg hover:text-destructive"
-                      onClick={() => handleDeleteClick(plano)}
-                    >
-                      <Trash2 className="size-3.5" />
-                    </Button>
-                  </div>
-                </div>
+              )
+            })
+          ) : (
+            <div className="col-span-full py-20 flex flex-col items-center justify-center text-center space-y-6 bg-card/20 rounded-3xl border-2 border-dashed border-border/50 backdrop-blur-sm">
+              <div className="size-20 rounded-3xl bg-primary/10 flex items-center justify-center text-primary rotate-3 transform transition-transform hover:rotate-0">
+                <CreditCard className="size-10" />
               </div>
-            )
-          })}
+              <div className="space-y-2 max-w-sm px-4">
+                <h3 className="text-2xl font-black tracking-tight">Nenhum plano cadastrado</h3>
+                <p className="text-muted-foreground font-medium text-sm">
+                  Você ainda não criou nenhum plano de assinatura para seus clientes. Comece agora mesmo!
+                </p>
+              </div>
+              <Button 
+                onClick={handleNewClick}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl px-8 font-bold shadow-lg shadow-primary/20 gap-2 h-11"
+              >
+                <Plus className="size-5 stroke-[3px]" />
+                Criar Meu Primeiro Plano
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 

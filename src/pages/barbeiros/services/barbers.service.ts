@@ -1,65 +1,44 @@
 import api from "@/lib/api"
 import type { Barber } from "../types"
-import { MOCK_BARBERS } from "../data/mockData"
+import { getActiveUnidadeId } from "@/lib/auth"
 
-const USE_MOCK = true
+const mapProfessionalToBarber = (p: any): Barber => ({
+  ...p,
+  name: p.user?.name || "",
+  email: p.user?.email || "",
+  phone: p.user?.phone || "",
+  avatarUrl: p.user?.avatarUrl || undefined,
+  commissionValue: Number(p.commissionValue) || 0,
+  serviceIds: p.services?.map((s: any) => s.serviceId) || [],
+  blocks: p.blocks?.map((b: any) => ({
+    ...b,
+    date: b.date ? b.date.split('T')[0] : "",
+  })) || [],
+});
 
 export const barbersService = {
   getBarbers: async (): Promise<Barber[]> => {
-    if (USE_MOCK) {
-      await new Promise(r => setTimeout(r, 400))
-      return [...MOCK_BARBERS]
-    }
-    const res = await api.get("/barbers")
-    return res.data
+    const unidadId = getActiveUnidadeId()
+    const res = await api.get(`/professionals?unidadeId=${unidadId}`)
+    return res.data.map(mapProfessionalToBarber);
   },
 
-  createBarber: async (data: Partial<Barber>): Promise<Barber> => {
-    if (USE_MOCK) {
-      await new Promise(r => setTimeout(r, 600))
-      const newBarber: Barber = {
-        id: `b${Date.now()}`,
-        name: data.name || "",
-        email: data.email || "",
-        phone: data.phone,
-        specialty: data.specialty,
-        bio: data.bio,
-        color: data.color || "#baf91a",
-        commissionType: data.commissionType || "PERCENTAGE",
-        commissionValue: data.commissionValue || 0,
-        isActive: data.isActive !== undefined ? data.isActive : true,
-        createdAt: new Date().toISOString(),
-      }
-      MOCK_BARBERS.push(newBarber)
-      return newBarber
-    }
-    const res = await api.post("/barbers", data)
-    return res.data
+  getBarberById: async (id: string): Promise<Barber> => {
+    const res = await api.get(`/professionals/${id}`)
+    return mapProfessionalToBarber(res.data);
   },
 
-  updateBarber: async (id: string, data: Partial<Barber>): Promise<Barber> => {
-    if (USE_MOCK) {
-      await new Promise(r => setTimeout(r, 600))
-      const idx = MOCK_BARBERS.findIndex(b => b.id === id)
-      if (idx >= 0) {
-        MOCK_BARBERS[idx] = { ...MOCK_BARBERS[idx], ...data }
-        return MOCK_BARBERS[idx]
-      }
-      throw new Error("Barber not found")
-    }
-    const res = await api.patch(`/barbers/${id}`, data)
-    return res.data
+  createBarber: async (data: any): Promise<Barber> => {
+    const res = await api.post("/professionals", data)
+    return mapProfessionalToBarber(res.data);
+  },
+
+  updateBarber: async (id: string, data: any): Promise<Barber> => {
+    const res = await api.patch(`/professionals/${id}`, data)
+    return mapProfessionalToBarber(res.data);
   },
 
   deleteBarber: async (id: string): Promise<void> => {
-    if (USE_MOCK) {
-      await new Promise(r => setTimeout(r, 400))
-      const idx = MOCK_BARBERS.findIndex(b => b.id === id)
-      if (idx >= 0) {
-        MOCK_BARBERS[idx].isActive = false
-      }
-      return
-    }
-    await api.delete(`/barbers/${id}`)
+    await api.delete(`/professionals/${id}`)
   }
 }

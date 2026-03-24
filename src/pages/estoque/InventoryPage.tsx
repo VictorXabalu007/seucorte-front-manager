@@ -37,8 +37,9 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { inventoryService } from "./services/inventory.service"
-import type { InventoryItem, InventoryFormData } from "./types/inventory"
+import type { InventoryItem, InventoryFormData, InventoryStats } from "./types/inventory"
 import { useLoading } from "@/components/loading-provider"
+import { getActiveUnidadeId } from "@/lib/auth"
 import { InventorySheet } from "./components/InventorySheet"
 import { RestockDialog } from "./components/RestockDialog"
 import { 
@@ -46,12 +47,15 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import { useDebounce } from "@/hooks/use-debounce"
 
 export default function InventoryPage() {
   const { setIsLoading } = useLoading()
   const [items, setItems] = useState<InventoryItem[]>([])
+  const [stats, setStats] = useState<InventoryStats | null>(null)
   const [isInternalLoading, setIsInternalLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
+
   const [categoryFilter, setCategoryFilter] = useState("all")
   const [statusFilter, setStatusFilter] = useState("all")
   const [currentPage, setCurrentPage] = useState(1)
@@ -64,25 +68,40 @@ export default function InventoryPage() {
   const [isRestockOpen, setIsRestockOpen] = useState(false)
   const [restockItem, setRestockItem] = useState<InventoryItem | null>(null)
 
-  const itemsPerPage = 6
+  const itemsPerPage = 8
+
+  const debouncedSearchTerm = useDebounce(searchTerm, 400);
+
+  const loadData = async () => {
+    setIsLoading(true)
+    setIsInternalLoading(true)
+    try {
+      const results = await Promise.all([
+        inventoryService.getItems({ 
+            search: debouncedSearchTerm, 
+            category: categoryFilter !== 'all' ? categoryFilter : undefined 
+        }),
+        inventoryService.getStats()
+      ])
+      
+      const [data, statsData] = results
+      setItems(data)
+      setStats(statsData)
+    } catch (error) {
+      console.error("Failed to load inventory:", error)
+      toast.error("Erro ao carregar dados do estoque")
+      
+      // Fallback apenas se houver erro real e não houver dados
+      setItems([])
+    } finally {
+      setIsLoading(false)
+      setIsInternalLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const loadItems = async () => {
-      setIsLoading(true)
-      setIsInternalLoading(true)
-      try {
-        const data = await inventoryService.getItems().catch(() => inventoryService.getMockItems())
-        setItems(data)
-      } catch (error) {
-        console.error("Failed to load inventory:", error)
-      } finally {
-        setIsLoading(false)
-        setIsInternalLoading(false)
-      }
-    }
-
-    loadItems()
-  }, [])
+    loadData()
+  }, [debouncedSearchTerm, categoryFilter])
 
   // Filtering logic
   const filteredItems = items.filter(item => {
@@ -160,7 +179,7 @@ export default function InventoryPage() {
         </div>
 
         {/* KPIs */}
-        <InventoryKPIs items={items} isLoading={isInternalLoading} />
+        <InventoryKPIs stats={stats} isLoading={isInternalLoading} />
 
         {/* Main Content Card */}
         <div className="bg-card/40 rounded-3xl border border-border shadow-sm overflow-hidden backdrop-blur-sm">
@@ -220,208 +239,144 @@ export default function InventoryPage() {
             </div>
           </div>
 
-          {/* Table (Desktop) */}
-          <div className="hidden md:block overflow-x-auto">
-            <Table>
-              <TableHeader className="bg-muted/40">
-                <TableRow className="border-border">
-                  <TableHead className="w-[250px] text-[10px] font-black uppercase tracking-widest py-5 px-8">Produto</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Categoria</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Valor Venda</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Saldo Atual</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Comissão</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Status</TableHead>
-                  <TableHead className="text-right py-5 px-8 text-[10px] font-black uppercase tracking-widest">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isInternalLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-32 text-center text-slate-500 font-bold">
-                      Carregando estoque...
-                    </TableCell>
-                  </TableRow>
-                ) : paginatedItems.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-32 text-center text-slate-500 font-bold">
-                      Nenhum item encontrado.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  paginatedItems.map((item) => (
-                    <TableRow key={item.id} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors border-slate-100 dark:border-slate-800/60">
-                      <TableCell className="py-4 px-8">
-                        <div className="flex items-center gap-3">
-                          <div className="size-10 rounded-xl bg-muted flex items-center justify-center text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                            <Package className="size-5" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-bold tracking-tight">{item.name}</p>
-                            <p className="text-[11px] text-muted-foreground font-medium line-clamp-1">{item.description}</p>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="bg-sky-50 text-sky-600 border-sky-100 dark:bg-sky-500/10 dark:text-sky-400 dark:border-transparent rounded-lg font-bold whitespace-nowrap">
-                          {item.category}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm font-black tabular-nums whitespace-nowrap">R$ {item.price.toFixed(2)}</span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-1.5 min-w-[100px]">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-black tabular-nums">{item.stock}</span>
-                            <span className="text-[11px] text-slate-400 font-medium uppercase tracking-tighter">{item.unit}</span>
-                          </div>
-                          <div className="w-full max-w-[100px] h-1.5 bg-muted rounded-full overflow-hidden">
-                            <div 
-                              className={cn(
-                                "h-full rounded-full shadow-lg",
-                                item.status === 'SAFE' ? "bg-primary shadow-primary/20" : 
-                                item.status === 'LOW' ? "bg-amber-500 shadow-amber-500/20" : 
-                                "bg-destructive shadow-destructive/20"
-                              )}
-                              style={{ width: `${Math.min((item.stock / (item.minStock * 3)) * 100, 100)}%` }}
-                             />
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col whitespace-nowrap">
-                            <span className="text-xs font-bold text-slate-700">
-                                {item.commissionType === 'PERCENTAGE' ? `${item.commissionValue}%` : `R$ ${item.commissionValue.toFixed(2)}`}
-                            </span>
-                            <span className="text-[9px] text-muted-foreground uppercase font-black tracking-tighter">por venda</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className={cn(
-                          "flex items-center gap-1.5 whitespace-nowrap",
-                          item.status === 'SAFE' ? "text-primary" : 
-                          item.status === 'LOW' ? "text-amber-500" : 
-                          "text-destructive"
-                        )}>
-                          <div className={cn(
-                            "size-1.5 rounded-full shadow-lg",
-                            item.status === 'SAFE' ? "bg-primary shadow-primary/50" : 
-                            item.status === 'LOW' ? "bg-amber-500 shadow-amber-500/50" : 
-                            "bg-destructive shadow-destructive/50"
-                          )} />
-                          <span className="text-[11px] font-black uppercase tracking-wider">
-                            {item.status === 'SAFE' ? 'Seguro' : item.status === 'LOW' ? 'Baixo' : 'Crítico'}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right px-8">
-                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            onClick={() => {
-                                setRestockItem(item)
-                                setIsRestockOpen(true)
-                            }}
-                            className="size-8 rounded-lg hover:bg-emerald-500/10 hover:text-emerald-500"
-                          >
-                            <PackagePlus className="size-3.5" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            onClick={() => {
-                                setEditingItem(item)
-                                setIsSheetOpen(true)
-                            }}
-                            className="size-8 rounded-lg hover:bg-primary/10 hover:text-primary"
-                          >
-                            <Edit2 className="size-3.5" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="size-8 rounded-lg hover:bg-rose-500/10 hover:text-rose-500"
-                            onClick={() => handleDeleteClick(item)}
-                          >
-                            <Ban className="size-3.5" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-
-          {/* Card View (Mobile) */}
-          <div className="md:hidden divide-y divide-border/50">
+          {/* Grid View (Cards) */}
+          <div className="bg-background">
             {isInternalLoading ? (
-               <div className="p-8 text-center text-slate-500 font-bold">Carregando...</div>
+              <div className="p-8 space-y-4">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="h-16 bg-muted/50 animate-pulse rounded-xl border border-border/50" />
+                ))}
+              </div>
             ) : paginatedItems.length === 0 ? (
-               <div className="p-8 text-center text-slate-500 font-bold">Nenhum item encontrado.</div>
-            ) : (
-              paginatedItems.map((item) => (
-                <div key={item.id} className="p-4 space-y-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="size-10 rounded-xl bg-muted flex items-center justify-center text-muted-foreground">
-                        <Package className="size-5" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-black tracking-tight">{item.name}</p>
-                        <Badge variant="outline" className="mt-1 bg-sky-50 text-sky-600 border-sky-100 text-[9px] px-1.5 py-0 rounded-md font-bold uppercase tracking-wider">
-                          {item.category}
-                        </Badge>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="icon" className="size-8 rounded-lg" onClick={() => { setRestockItem(item); setIsRestockOpen(true); }}>
-                        <PackagePlus className="size-4 text-emerald-500" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="size-8 rounded-lg" onClick={() => { setEditingItem(item); setIsSheetOpen(true); }}>
-                        <Edit2 className="size-4 text-primary" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4 bg-muted/20 p-3 rounded-2xl">
-                    <div>
-                      <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Preço Venda</p>
-                      <p className="text-sm font-black">R$ {item.price.toFixed(2)}</p>
-                    </div>
-                    <div>
-                      <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Status</p>
-                      <div className={cn("flex items-center gap-1 text-[10px] font-black uppercase", item.status === 'SAFE' ? "text-primary" : item.status === 'LOW' ? "text-amber-500" : "text-destructive")}>
-                        <div className={cn("size-1.5 rounded-full", item.status === 'SAFE' ? "bg-primary" : item.status === 'LOW' ? "bg-amber-500" : "bg-destructive")} />
-                        {item.status === 'SAFE' ? 'Seguro' : item.status === 'LOW' ? 'Baixo' : 'Crítico'}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="text-center">
-                        <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-0.5">Estoque</p>
-                        <p className="text-sm font-black tabular-nums">{item.stock} <span className="text-[10px] text-slate-400">{item.unit}</span></p>
-                      </div>
-                      <div className="w-20 h-1.5 bg-muted rounded-full overflow-hidden mt-2">
-                        <div 
-                          className={cn("h-full rounded-full", item.status === 'SAFE' ? "bg-primary" : item.status === 'LOW' ? "bg-amber-500" : "bg-destructive")}
-                          style={{ width: `${Math.min((item.stock / (item.minStock * 3)) * 100, 100)}%` }}
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-0.5 text-right">Comissão</p>
-                      <p className="text-xs font-bold text-right">
-                        {item.commissionType === 'PERCENTAGE' ? `${item.commissionValue}%` : `R$ ${item.commissionValue.toFixed(2)}`}
-                      </p>
-                    </div>
-                  </div>
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <div className="size-20 bg-muted rounded-full flex items-center justify-center mb-4">
+                  <Package className="size-10 text-muted-foreground/40" />
                 </div>
-              ))
+                <h3 className="text-lg font-bold">Nenhum produto encontrado</h3>
+                <p className="text-muted-foreground text-sm max-w-xs mx-auto">Tente ajustar seus filtros ou cadastre um novo produto.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent border-border/50">
+                      <TableHead className="w-[300px] text-[10px] font-black uppercase tracking-widest py-4 pl-8">Produto</TableHead>
+                      <TableHead className="text-[10px] font-black uppercase tracking-widest py-4">Categoria</TableHead>
+                      <TableHead className="text-[10px] font-black uppercase tracking-widest py-4">Estoque</TableHead>
+                      <TableHead className="text-[10px] font-black uppercase tracking-widest py-4">Valores (Custo/Venda)</TableHead>
+                      <TableHead className="text-[10px] font-black uppercase tracking-widest py-4">Lucro (%)</TableHead>
+                      <TableHead className="text-[10px] font-black uppercase tracking-widest py-4 text-center">Status</TableHead>
+                      <TableHead className="w-[100px] text-right py-4 pr-8"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedItems.map((item) => (
+                      <TableRow key={item.id} className="group hover:bg-muted/30 transition-colors border-border/40">
+                        <TableCell className="py-4 pl-8">
+                          <div className="flex items-center gap-3">
+                            <div className="size-10 rounded-xl bg-muted/50 flex items-center justify-center border border-border/50 shrink-0">
+                                <Package className="size-5 text-muted-foreground/40 group-hover:text-primary/40 transition-colors" />
+                            </div>
+                            <div className="flex flex-col min-w-0">
+                                <span className="font-bold text-sm text-foreground truncate">{item.name}</span>
+                                <span className="text-[10px] text-muted-foreground truncate max-w-[200px]">{item.description || "Sem descrição"}</span>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                            <Badge variant="secondary" className="bg-muted text-[10px] font-black uppercase tracking-tighter px-2 h-5">
+                                {item.category}
+                            </Badge>
+                        </TableCell>
+                        <TableCell>
+                            <div className="flex flex-col gap-1.5 w-32">
+                                <div className="flex items-center justify-between text-[11px] font-black uppercase tracking-tighter">
+                                    <span className={cn(
+                                        item.status === 'SAFE' ? "text-emerald-500" : 
+                                        item.status === 'LOW' ? "text-amber-500" : "text-rose-500"
+                                    )}>
+                                        {item.stock} un
+                                    </span>
+                                    <span className="text-muted-foreground/40">min {item.minStock}</span>
+                                </div>
+                                <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                                    <div 
+                                        className={cn(
+                                            "h-full transition-all duration-1000",
+                                            item.status === 'SAFE' ? "bg-emerald-500" : 
+                                            item.status === 'LOW' ? "bg-amber-500" : "bg-rose-500"
+                                        )}
+                                        style={{ width: `${Math.min((item.stock / (item.minStock * 2)) * 100, 100)}%` }}
+                                    />
+                                </div>
+                            </div>
+                        </TableCell>
+                        <TableCell>
+                            <div className="flex flex-col">
+                                <span className="text-xs font-black text-foreground">R$ {Number(item.salePrice).toFixed(2)}</span>
+                                <span className="text-[10px] font-bold text-muted-foreground">Custo: R$ {Number(item.costPrice).toFixed(2)}</span>
+                            </div>
+                        </TableCell>
+                        <TableCell>
+                            <span className="text-xs font-black text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-md">
+                                {Number(item.salePrice) > 0 
+                                    ? (((Number(item.salePrice) - Number(item.costPrice)) / Number(item.salePrice)) * 100).toFixed(0) 
+                                    : "0"
+                                }%
+                            </span>
+                        </TableCell>
+                        <TableCell className="text-center">
+                            <Badge className={cn(
+                                "rounded-lg text-[9px] font-black uppercase tracking-widest px-2.5 py-0.5 shadow-none border-0",
+                                item.status === 'SAFE' ? "bg-emerald-500/10 text-emerald-500" : 
+                                item.status === 'LOW' ? "bg-amber-500/10 text-amber-500" : 
+                                "bg-rose-500/10 text-rose-500"
+                            )}>
+                                {item.status === 'SAFE' ? 'Seguro' : item.status === 'LOW' ? 'Baixo' : 'Crítico'}
+                            </Badge>
+                        </TableCell>
+                        <TableCell className="pr-8">
+                            <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="size-8 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10"
+                                    onClick={() => {
+                                        setRestockItem(item)
+                                        setIsRestockOpen(true)
+                                    }}
+                                >
+                                    <PackagePlus className="size-4" />
+                                </Button>
+                                <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="size-8 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10"
+                                    onClick={() => {
+                                        setEditingItem(item)
+                                        setIsSheetOpen(true)
+                                    }}
+                                >
+                                    <Edit2 className="size-4" />
+                                </Button>
+                                <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="size-8 rounded-lg text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10"
+                                    onClick={() => handleDeleteClick(item)}
+                                >
+                                    <Ban className="size-4" />
+                                </Button>
+                            </div>
+                            <div className="group-hover:hidden flex justify-end">
+                                <MoreHorizontal className="size-4 text-muted-foreground/40" />
+                            </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </div>
           
@@ -485,33 +440,27 @@ export default function InventoryPage() {
         item={editingItem}
         onSave={async (data: InventoryFormData) => {
             try {
-                const numericData = {
-                    ...data,
-                    price: parseFloat(data.price),
-                    stock: parseFloat(data.stock),
-                    minStock: parseFloat(data.minStock),
-                    commissionValue: parseFloat(data.commissionValue),
-                }
+                // Get unidadeId from context or local storage
+                const unidadeId = localStorage.getItem("unidadeId") || ""
+                
+                const payload = {
+        ...data,
+        salePrice: data.salePrice,
+        costPrice: data.costPrice,
+        stock: Number(data.stock),
+        minStock: Number(data.minStock),
+        unidadeId: getActiveUnidadeId() || ""
+      } as any
 
                 if (editingItem) {
-                    // Update
-                    console.log("Updating item:", editingItem.id, numericData)
-                    setItems(prev => prev.map(i => i.id === editingItem.id ? { ...i, ...numericData, status: numericData.stock <= numericData.minStock ? 'CRITICAL' : 'SAFE' } as InventoryItem : i))
+                    await inventoryService.updateItem(editingItem.id, payload)
                     toast.success("Produto atualizado com sucesso!")
                 } else {
-                    // Create
-                    const newItem: InventoryItem = {
-                        id: Math.random().toString(36).substr(2, 9),
-                        ...numericData,
-                        isActive: true,
-                        status: numericData.stock <= numericData.minStock ? 'CRITICAL' : 'SAFE',
-                        createdAt: new Date().toISOString(),
-                        updatedAt: new Date().toISOString(),
-                    } as InventoryItem
-                    setItems(prev => [newItem, ...prev])
+                    await inventoryService.createItem(payload)
                     toast.success("Produto cadastrado com sucesso!")
                 }
                 setIsSheetOpen(false)
+                loadData()
             } catch (error) {
                 toast.error("Erro ao salvar produto")
             }
@@ -522,19 +471,14 @@ export default function InventoryPage() {
         isOpen={isRestockOpen}
         onOpenChange={setIsRestockOpen}
         item={restockItem}
-        onConfirm={(id, quantity) => {
-            setItems(prev => prev.map(i => {
-                if (i.id === id) {
-                    const newStock = i.stock + quantity
-                    return {
-                        ...i,
-                        stock: newStock,
-                        status: newStock <= i.minStock ? 'CRITICAL' : newStock <= i.minStock * 1.5 ? 'LOW' : 'SAFE'
-                    }
-                }
-                return i
-            }))
-            toast.success("Estoque renovado com sucesso!")
+        onConfirm={async (id, quantity) => {
+            try {
+              await inventoryService.restock(id, quantity)
+              toast.success("Estoque renovado com sucesso!")
+              loadData()
+            } catch (error) {
+              toast.error("Erro ao reabastecer produto")
+            }
         }}
       />
     </AdminLayout>

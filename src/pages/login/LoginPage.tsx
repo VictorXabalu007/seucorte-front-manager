@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, Link } from "react-router-dom"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -15,6 +15,8 @@ import {
   FormItem,
   FormMessage,
 } from "@/components/ui/form"
+
+import { authService } from "@/services/auth"
 
 const loginSchema = z.object({
   email: z.string().email("E-mail inválido"),
@@ -39,13 +41,25 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true)
     try {
-      // Simulating API call
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-      console.log("Login data:", data)
-      toast.success("Bem-vindo de volta!")
-      navigate("/estoque")
-    } catch (error) {
-      toast.error("Erro ao realizar login. Verifique suas credenciais.")
+      const response = await authService.login(data)
+      
+      // Armazena tokens no localStorage (usando as funções do lib/auth)
+      localStorage.setItem("@SeuCorte:token", response.accessToken)
+      localStorage.setItem("@SeuCorte:refreshToken", response.refreshToken)
+      localStorage.setItem("@SeuCorte:user", JSON.stringify(response.user))
+      
+      if (response.user.forcePasswordChange) {
+        navigate("/primeiro-acesso")
+      } else {
+        navigate("/estoque")
+      }
+    } catch (error: any) {
+      if (error.response?.status === 403) {
+        // Manteve-se o redirecionamento, o toast de erro vem do interceptor
+        navigate(`/verify-email?email=${encodeURIComponent(data.email)}&purpose=email-verification`)
+        return
+      }
+      // O toast de erro genérico agora é disparado pelo interceptor
     } finally {
       setIsLoading(false)
     }
@@ -115,12 +129,12 @@ export default function LoginPage() {
                         <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                           Senha
                         </label>
-                        <button 
-                          type="button"
+                        <Link 
+                          to="/forgot-password"
                           className="text-[10px] font-black uppercase tracking-widest text-primary hover:text-primary/80 transition-colors"
                         >
                           Esqueceu?
-                        </button>
+                        </Link>
                       </div>
                       <FormControl>
                         <div className="relative">
@@ -166,9 +180,9 @@ export default function LoginPage() {
           <div className="mt-8 pt-6 border-t border-white/5 text-center">
             <p className="text-xs font-bold text-muted-foreground">
               Não tem uma conta?{" "}
-              <button className="text-primary hover:underline decoration-2 underline-offset-4">
+              <Link to="/register" className="text-primary hover:underline decoration-2 underline-offset-4">
                 Criar Unidade
-              </button>
+              </Link>
             </p>
           </div>
         </div>

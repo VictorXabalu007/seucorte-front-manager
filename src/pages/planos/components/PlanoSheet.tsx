@@ -49,7 +49,7 @@ const planoSchema = z.object({
   description: z.string().min(10, "Descrição deve ter pelo menos 10 caracteres"),
   features: z.array(z.string().min(1, "Característica não pode ser vazia")).min(1, "Adicione pelo menos uma característica"),
   billingCycle: z.enum(["monthly", "yearly"]),
-  active: z.boolean(),
+  isActive: z.boolean(),
 })
 
 type PlanoFormValues = z.infer<typeof planoSchema>
@@ -75,7 +75,7 @@ export function PlanoSheet({
       description: "",
       features: [""],
       billingCycle: "monthly",
-      active: true,
+      isActive: true,
     },
   })
 
@@ -93,7 +93,7 @@ export function PlanoSheet({
           description: plano.description,
           features: plano.features,
           billingCycle: plano.billingCycle,
-          active: plano.active,
+          isActive: plano.isActive,
         })
       } else {
         form.reset({
@@ -102,7 +102,7 @@ export function PlanoSheet({
           description: "",
           features: [""],
           billingCycle: "monthly",
-          active: true,
+          isActive: true,
         })
       }
     }
@@ -243,7 +243,7 @@ export function PlanoSheet({
 
             <FormField
               control={form.control}
-              name="active"
+              name="isActive"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-xs font-bold text-muted-foreground flex items-center gap-2">

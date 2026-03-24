@@ -10,13 +10,14 @@ export interface Service {
   imageUrl?: string
   isActive: boolean
   barberIds: string[]
+  serviceIds?: string[]
 }
 
 export interface ServiceFormData {
   name: string
   description?: string
   duration: string
-  price: string
+  price: number
   category: ServiceCategory
   isActive: boolean
   barberIds: string[]

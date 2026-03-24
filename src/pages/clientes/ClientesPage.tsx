@@ -11,6 +11,11 @@ import {
   Users,
   Star,
   User,
+  TrendingUp,
+  Coins,
+  Award,
+  ChevronRight,
+  ShieldAlert,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -37,62 +42,95 @@ import { planoService } from "../planos/services/plano.service"
 import type { Cliente } from "./types/cliente"
 import type { Plano } from "../planos/types/plano"
 import { useLoading } from "@/components/loading-provider"
+import { getActiveUnidadeId } from "@/lib/auth"
+import { useNavigate } from "react-router-dom"
+import { useDebounce } from "@/hooks/use-debounce"
+import { toast } from "sonner"
+
+function StatCard({ title, value, icon: Icon, trend, color }: any) {
+  return (
+    <div className="bg-card/40 backdrop-blur-md border border-border p-5 rounded-3xl space-y-3 hover:border-primary/20 transition-all group">
+      <div className="flex items-center justify-between">
+        <div className={cn("p-2.5 rounded-2xl", color)}>
+          <Icon className="size-5" />
+        </div>
+        {trend && (
+          <div className="flex items-center gap-1 text-[10px] font-black text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-full">
+            <TrendingUp className="size-3" />
+            {trend}
+          </div>
+        )}
+      </div>
+      <div>
+        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">{title}</p>
+        <p className="text-2xl font-black tracking-tighter mt-1">{value}</p>
+      </div>
+    </div>
+  )
+}
 
 export default function ClientesPage() {
+  const navigate = useNavigate()
   const { setIsLoading } = useLoading()
+  const unidadeId = getActiveUnidadeId()
+  
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [planos, setPlanos] = useState<Plano[]>([])
+  const [stats, setStats] = useState<any>(null)
   const [isInternalLoading, setIsInternalLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
+  const debouncedSearch = useDebounce(searchTerm, 500)
   const [typeFilter, setTypeFilter] = useState("all")
   const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(0)
+  const [totalItems, setTotalItems] = useState(0)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [clienteToDelete, setClienteToDelete] = useState<Cliente | null>(null)
   const [isSheetOpen, setIsSheetOpen] = useState(false)
   const [clienteToEdit, setClienteToEdit] = useState<Cliente | null>(null)
-  const itemsPerPage = 7
+  const itemsPerPage = 8
 
-  useEffect(() => {
-    const loadData = async () => {
-      setIsLoading(true)
-      setIsInternalLoading(true)
-      try {
-        const [clientesData, planosData] = await Promise.all([
-          clienteService.getClientes(),
-          planoService.getPlans()
-        ])
-        setClientes(clientesData)
-        setPlanos(planosData)
-      } catch (error) {
-        console.error("Failed to load clientes data:", error)
-      } finally {
-        setIsLoading(false)
-        setIsInternalLoading(false)
-      }
+  const loadData = async () => {
+    if (!unidadeId) {
+      setIsLoading(false)
+      return
     }
-
-    loadData()
-  }, [])
-
-  const getPlanName = (planId?: string) => {
-    if (!planId) return "-"
-    return planos.find(p => p.id === planId)?.name || "-"
+    setIsInternalLoading(true)
+    try {
+      const [clientesRes, planosData, statsData] = await Promise.all([
+        clienteService.getClientes({ 
+          unidadeId, 
+          search: debouncedSearch, 
+          page: currentPage, 
+          limit: itemsPerPage 
+        }),
+        planoService.getPlans(),
+        clienteService.getStats(unidadeId)
+      ])
+      setClientes(clientesRes.data)
+      setTotalPages(clientesRes.pages)
+      setTotalItems(clientesRes.total)
+      setPlanos(planosData)
+      setStats(statsData)
+    } catch (error) {
+      console.error("Failed to load clientes data:", error)
+      toast.error("Erro ao carregar dados dos clientes")
+    } finally {
+      setIsInternalLoading(false)
+      setIsLoading(false)
+    }
   }
 
-  const filteredClientes = clientes.filter(cliente => {
-    const matchesSearch = 
-      cliente.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cliente.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cliente.phone.includes(searchTerm)
-    
-    const matchesType = typeFilter === "all" || cliente.type === typeFilter
+  useEffect(() => {
+    loadData()
+  }, [unidadeId, debouncedSearch, currentPage])
 
-    return matchesSearch && matchesType
-  })
-
-  const totalPages = Math.ceil(filteredClientes.length / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const paginatedClientes = filteredClientes.slice(startIndex, startIndex + itemsPerPage)
+  const getPlanName = (cliente: Cliente) => {
+    if (cliente.assinaturas && cliente.assinaturas.length > 0) {
+      return cliente.assinaturas[0].plano.name
+    }
+    return "-"
+  }
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value)
@@ -107,12 +145,15 @@ export default function ClientesPage() {
   const handleConfirmDelete = async () => {
     if (!clienteToDelete) return
     
-    // In a real app, call service here
-    console.log("Deleting cliente:", clienteToDelete.id)
-    
-    setClientes(prev => prev.filter(c => c.id !== clienteToDelete.id))
-    setIsDeleteModalOpen(false)
-    setClienteToDelete(null)
+    try {
+      await clienteService.deleteCliente(clienteToDelete.id)
+      toast.success("Cliente excluído com sucesso")
+      loadData()
+      setIsDeleteModalOpen(false)
+      setClienteToDelete(null)
+    } catch (error) {
+      toast.error("Erro ao excluir cliente")
+    }
   }
 
   const handleEditClick = (cliente: Cliente) => {
@@ -125,23 +166,21 @@ export default function ClientesPage() {
     setIsSheetOpen(true)
   }
 
-  const handleSaveCliente = (data: any) => {
-    if (clienteToEdit) {
-      // Edit mode
-      setClientes(prev => prev.map(c => c.id === clienteToEdit.id ? { ...c, ...data } : c))
-    } else {
-      // Create mode
-      const newCliente: Cliente = {
-        id: Math.random().toString(36).substring(7),
-        ...data,
-        totalSpent: 0,
-        appointmentsCount: 0,
-        lastVisit: "-"
+  const handleSaveCliente = async (data: any) => {
+    try {
+      if (clienteToEdit) {
+        await clienteService.updateCliente(clienteToEdit.id, data)
+        toast.success("Cliente atualizado com sucesso")
+      } else {
+        await clienteService.createCliente({ ...data, unidadeId })
+        toast.success("Cliente cadastrado com sucesso")
       }
-      setClientes(prev => [newCliente, ...prev])
+      loadData()
+      setIsSheetOpen(false)
+      setClienteToEdit(null)
+    } catch (error) {
+      toast.error("Erro ao salvar cliente")
     }
-    setIsSheetOpen(false)
-    setClienteToEdit(null)
   }
 
   return (
@@ -168,6 +207,35 @@ export default function ClientesPage() {
               <span className="xs:hidden">Novo</span>
             </Button>
           </div>
+        </div>
+
+        {/* KPI DASHBOARD */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          <StatCard 
+            title="Total de Clientes" 
+            value={stats?.total || 0} 
+            icon={Users} 
+            color="bg-primary/10 text-primary" 
+          />
+          <StatCard 
+            title="Clientes VIP" 
+            value={stats?.vipTotal || 0} 
+            icon={Award} 
+            trend="+5%" 
+            color="bg-amber-500/10 text-amber-500" 
+          />
+          <StatCard 
+            title="Faturamento (Total)" 
+            value={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats?.totalRevenue || 0)} 
+            icon={Coins} 
+            color="bg-emerald-500/10 text-emerald-500" 
+          />
+          <StatCard 
+            title="Média por Cliente" 
+            value={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats?.avgSpent || 0)} 
+            icon={TrendingUp} 
+            color="bg-blue-500/10 text-blue-500" 
+          />
         </div>
 
         <div className="bg-card/40 rounded-3xl border border-border shadow-sm overflow-hidden backdrop-blur-sm">
@@ -227,27 +295,35 @@ export default function ClientesPage() {
                       Carregando clientes...
                     </TableCell>
                   </TableRow>
-                ) : paginatedClientes.length === 0 ? (
+                ) : clientes.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="h-32 text-center text-slate-500 font-bold">
                       Nenhum cliente encontrado.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  paginatedClientes.map((cliente) => (
+                  clientes.map((cliente) => (
                     <TableRow key={cliente.id} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors border-slate-100 dark:border-slate-800/60">
                       <TableCell className="py-4 px-8">
                         <div className="flex items-center gap-3">
                           <div className={cn(
-                            "size-10 rounded-xl flex items-center justify-center transition-colors",
+                            "size-10 rounded-xl flex items-center justify-center transition-colors relative",
                             cliente.type === 'pro' 
                               ? "bg-primary/10 text-primary" 
                               : "bg-muted text-muted-foreground group-hover:bg-accent group-hover:text-foreground"
                           )}>
                             {cliente.type === 'pro' ? <Star className="size-5 fill-primary" /> : <User className="size-5" />}
+                            {cliente.isVip && (
+                              <div className="absolute -top-1 -right-1 bg-amber-500 border-2 border-background size-4 rounded-full flex items-center justify-center">
+                                <Award className="size-2 text-white" />
+                              </div>
+                            )}
                           </div>
                           <div>
-                            <p className="text-sm font-bold tracking-tight">{cliente.name}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-bold tracking-tight">{cliente.name}</p>
+                              {cliente.isBlocked && <ShieldAlert className="size-3 text-destructive" />}
+                            </div>
                             <p className="text-[11px] text-muted-foreground font-medium">{cliente.email}</p>
                           </div>
                         </div>
@@ -267,7 +343,7 @@ export default function ClientesPage() {
                           "text-xs font-bold",
                           cliente.type === 'pro' ? "text-foreground" : "text-muted-foreground font-medium"
                         )}>
-                          {getPlanName(cliente.planId)}
+                          {getPlanName(cliente)}
                         </p>
                       </TableCell>
                       <TableCell>
@@ -302,6 +378,14 @@ export default function ClientesPage() {
                           <Button 
                             variant="ghost" 
                             size="icon" 
+                            className="size-8 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800"
+                            onClick={() => navigate(`/clientes/${cliente.id}/perfil`)}
+                          >
+                            <ChevronRight className="size-3.5 text-slate-500" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
                             className="size-8 rounded-lg hover:bg-rose-500/10 hover:text-rose-500"
                             onClick={() => handleDeleteClick(cliente)}
                           >
@@ -320,10 +404,10 @@ export default function ClientesPage() {
           <div className="md:hidden divide-y divide-border/30">
             {isInternalLoading ? (
               <div className="py-12 text-center text-muted-foreground font-bold">Carregando...</div>
-            ) : paginatedClientes.length === 0 ? (
+            ) : clientes.length === 0 ? (
               <div className="py-12 text-center text-muted-foreground font-bold">Nenhum cliente encontrado.</div>
             ) : (
-              paginatedClientes.map((cliente) => (
+              clientes.map((cliente) => (
                 <div key={cliente.id} className="p-4 space-y-4">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
@@ -364,7 +448,7 @@ export default function ClientesPage() {
                     </div>
                     <div>
                       <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Plano Ativo</p>
-                      <p className="text-[11px] font-bold truncate">{getPlanName(cliente.planId)}</p>
+                      <p className="text-[11px] font-bold truncate">{getPlanName(cliente)}</p>
                     </div>
                   </div>
 
@@ -390,7 +474,7 @@ export default function ClientesPage() {
           
           <div className="p-4 sm:p-5 bg-muted/40 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4 px-4 sm:px-8">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest order-last sm:order-first">
-              {startIndex + 1}–{Math.min(startIndex + itemsPerPage, filteredClientes.length)} de {filteredClientes.length}
+               {((currentPage - 1) * itemsPerPage) + 1}–{Math.min(currentPage * itemsPerPage, totalItems)} de {totalItems}
             </span>
             <div className="flex items-center gap-1">
               <Button 

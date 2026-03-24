@@ -22,6 +22,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 
+import { MoneyInput } from "@/components/ui/money-input"
 import { appointmentFormSchema, type AppointmentFormValues } from "../schema"
 import type { Professional, Service } from "../types"
 import { TIME_SLOTS } from "../data/mockData"
@@ -66,7 +67,7 @@ export function AppointmentCreateSheet({
         const eh = Math.floor(endMins / 60).toString().padStart(2, "0")
         const em = (endMins % 60).toString().padStart(2, "0")
         form.setValue("endTime", `${eh}:${em}`)
-        form.setValue("amount", svc.price)
+        form.setValue("amount", Number(svc.price))
       }
     }
   }, [selectedServiceId, startTime, services, form])
@@ -83,7 +84,7 @@ export function AppointmentCreateSheet({
         endTime: initialData?.endTime || "09:30",
         paymentStatus: initialData?.paymentStatus || "PENDING",
         status: initialData?.status || "SCHEDULED",
-        amount: initialData?.amount || 0,
+        amount: Number(initialData?.amount || 0),
         notes: initialData?.notes || "",
       })
     }
@@ -263,13 +264,11 @@ export function AppointmentCreateSheet({
                   <FormItem>
                     <Label className="text-xs text-muted-foreground flex items-center gap-1.5 mb-1.5"><DollarSign className="size-3 text-primary" /> Valor</Label>
                     <FormControl>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        placeholder="0,00"
+                      <MoneyInput
+                        placeholder="R$ 0,00"
                         className="bg-background/50 border-border rounded-xl h-9"
                         value={field.value}
-                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                        onChange={field.onChange}
                       />
                     </FormControl>
                     <FormMessage />

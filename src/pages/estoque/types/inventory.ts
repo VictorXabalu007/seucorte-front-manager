@@ -3,35 +3,30 @@ export interface InventoryItem {
   name: string;
   description?: string;
   category: string;
-  price: number;
+  salePrice: number;
+  costPrice: number;
   stock: number;
   minStock: number;
-  unit: string;
   status: 'SAFE' | 'LOW' | 'CRITICAL';
   isActive: boolean;
-  commissionType: 'PERCENTAGE' | 'FIXED';
-  commissionValue: number;
-  linkedService?: string;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface InventoryStats {
   totalItems: number;
-  lowStockCount: number;
-  monthlyConsumption: number;
-  efficiency: number;
+  totalCost: number;
+  totalPotentialRevenue: number;
+  totalPotentialProfit: number;
+  lowStockItems: number;
 }
 
 export interface InventoryFormData {
   name: string;
   description?: string;
   category: string;
-  price: string;
+  salePrice: number;
+  costPrice: number;
   stock: string;
   minStock: string;
-  unit: string;
-  commissionType: 'PERCENTAGE' | 'FIXED';
-  commissionValue: string;
-  linkedService?: string;
 }

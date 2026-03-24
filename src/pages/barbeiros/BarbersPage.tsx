@@ -13,10 +13,11 @@ import type { Service } from "../servicos/types"
 
 import { BarberCard } from "./components/BarberCard"
 import { BarberFilters } from "./components/BarberFilters"
-import { BarberSheet } from "./components/BarberSheet"
+import { useNavigate } from "react-router-dom"
 
 export default function BarbersPage() {
   const { setIsLoading: setGlobalLoading } = useLoading()
+  const navigate = useNavigate()
   
   const [barbers, setBarbers] = useState<Barber[]>([])
   const [services, setServices] = useState<Service[]>([])
@@ -26,9 +27,9 @@ export default function BarbersPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
 
-  // Sheet state
-  const [isSheetOpen, setIsSheetOpen] = useState(false)
-  const [editingBarber, setEditingBarber] = useState<Barber | null>(null)
+  // Removed sheet state
+  // const [isSheetOpen, setIsSheetOpen] = useState(false)
+  // const [editingBarber, setEditingBarber] = useState<Barber | null>(null)
 
   const fetchData = async () => {
     setIsLoading(true)
@@ -69,13 +70,11 @@ export default function BarbersPage() {
   }, [barbers, searchTerm, statusFilter])
 
   const handleCreate = () => {
-    setEditingBarber(null)
-    setIsSheetOpen(true)
+    navigate("/barbeiros/novo")
   }
 
   const handleEdit = (barber: Barber) => {
-    setEditingBarber(barber)
-    setIsSheetOpen(true)
+    navigate(`/barbeiros/${barber.id}/editar`)
   }
 
   const handleDelete = async (id: string) => {
@@ -90,28 +89,8 @@ export default function BarbersPage() {
     }
   }
 
-  const handleSave = async (data: BarberFormData) => {
-    try {
-      const barberData = {
-        ...data,
-        commissionValue: parseFloat(data.commissionValue),
-        cutPrice: parseFloat(data.cutPrice),
-      }
-
-      if (editingBarber) {
-        await barbersService.updateBarber(editingBarber.id, barberData)
-        toast.success("Barbeiro atualizado!")
-      } else {
-        await barbersService.createBarber(barberData)
-        toast.success("Barbeiro cadastrado!")
-      }
-      setIsSheetOpen(false)
-      fetchData()
-    } catch {
-      toast.error("Erro ao salvar barbeiro")
-    }
-  }
-
+  // Sheet handleSave removed
+  
   const clearFilters = () => {
     setSearchTerm("")
     setStatusFilter("all")
@@ -229,14 +208,6 @@ export default function BarbersPage() {
           </div>
         )}
       </div>
-
-      <BarberSheet
-        isOpen={isSheetOpen}
-        onOpenChange={setIsSheetOpen}
-        barber={editingBarber}
-        services={services}
-        onSave={handleSave}
-      />
     </AdminLayout>
   )
 }

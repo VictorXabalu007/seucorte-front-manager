@@ -12,8 +12,7 @@ import {
   AlertCircle,
   Scissors,
   DollarSign,
-  PlusCircle,
-  Scale
+  PlusCircle
 } from "lucide-react"
 
 import {
@@ -33,8 +32,16 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import { MoneyInput } from "@/components/ui/money-input"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import type { InventoryItem, InventoryFormData } from "../types/inventory"
 
@@ -42,27 +49,20 @@ const inventorySchema = z.object({
   name: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
   description: z.string().optional(),
   category: z.string().min(1, "Categoria é obrigatória"),
-  price: z.string().min(1, "Preço de venda é obrigatório"),
+  salePrice: z.number().min(0.01, "Preço de venda deve ser maior que zero"),
+  costPrice: z.number().min(0.01, "Preço de custo deve ser maior que zero"),
   stock: z.string().min(1, "Estoque atual é obrigatório"),
   minStock: z.string().min(1, "Estoque mínimo é obrigatório"),
-  unit: z.string().min(1, "Unidade de medida é obrigatória"),
-  commissionType: z.enum(["PERCENTAGE", "FIXED"]),
-  commissionValue: z.string().min(1, "Valor da comissão é obrigatório"),
-  linkedService: z.string().optional(),
-}).superRefine((data, ctx) => {
-  if (data.commissionType === "FIXED") {
-    const commission = parseFloat(data.commissionValue)
-    const price = parseFloat(data.price)
-    
-    if (commission > price) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "A comissão fixa não pode ser maior que o preço de venda",
-        path: ["commissionValue"],
-      })
-    }
-  }
 })
+
+const INVENTORY_CATEGORIES = [
+  "Cabelo",
+  "Barba",
+  "Bebidas",
+  "Insumos",
+  "Acessórios",
+  "Outros"
+]
 
 interface InventorySheetProps {
   isOpen: boolean
@@ -83,13 +83,10 @@ export function InventorySheet({
       name: "",
       description: "",
       category: "",
-      price: "0",
+      salePrice: 0,
+      costPrice: 0,
       stock: "0",
       minStock: "0",
-      unit: "Unidades",
-      commissionType: "PERCENTAGE",
-      commissionValue: "0",
-      linkedService: "",
     },
   })
 
@@ -100,26 +97,20 @@ export function InventorySheet({
           name: item.name,
           description: item.description || "",
           category: item.category,
-          price: item.price.toString(),
+          salePrice: item.salePrice,
+          costPrice: item.costPrice,
           stock: item.stock.toString(),
           minStock: item.minStock.toString(),
-          unit: item.unit,
-          commissionType: item.commissionType,
-          commissionValue: item.commissionValue.toString(),
-          linkedService: item.linkedService || "",
         })
       } else {
         form.reset({
           name: "",
           description: "",
           category: "",
-          price: "0",
+          salePrice: 0,
+          costPrice: 0,
           stock: "0",
           minStock: "0",
-          unit: "Unidades",
-          commissionType: "PERCENTAGE",
-          commissionValue: "0",
-          linkedService: "",
         })
       }
     }
@@ -177,37 +168,28 @@ export function InventorySheet({
                   control={form.control}
                   name="category"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="md:col-span-2">
                       <FormLabel className="text-xs font-bold text-muted-foreground flex items-center gap-2">
                         <Layers className="size-3 text-primary" /> Categoria
                       </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Ex: Barba"
-                          {...field}
-                          className="bg-background/50 border-border rounded-xl focus:ring-primary/20 h-11 font-medium"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="unit"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-xs font-bold text-muted-foreground flex items-center gap-2">
-                        <Scale className="size-3 text-primary" /> Unidade
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Ex: Un, Pacote, Frasco"
-                          {...field}
-                          className="bg-background/50 border-border rounded-xl focus:ring-primary/20 h-11 font-medium"
-                        />
-                      </FormControl>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        value={field.value}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="bg-background/50 border-border rounded-xl focus:ring-primary/20 h-11 font-medium">
+                            <SelectValue placeholder="Selecione uma categoria" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="rounded-xl border-border bg-card/95 backdrop-blur-md">
+                          {INVENTORY_CATEGORIES.map(cat => (
+                            <SelectItem key={cat} value={cat} className="text-sm font-medium">
+                              {cat}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -241,23 +223,40 @@ export function InventorySheet({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="price"
+                  name="salePrice"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-xs font-bold text-muted-foreground flex items-center gap-2">
                         <DollarSign className="size-3 text-primary" /> Preço de Venda
                       </FormLabel>
                       <FormControl>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-black text-muted-foreground">R$</span>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            placeholder="0.00"
-                            {...field}
-                            className="bg-background/50 border-border rounded-xl focus:ring-primary/20 h-11 pl-9 font-bold text-lg"
-                          />
-                        </div>
+                        <MoneyInput
+                          value={field.value}
+                          onChange={field.onChange}
+                          placeholder="0,00"
+                          className="bg-background/50 border-border rounded-xl focus:ring-primary/20 h-11 font-bold text-lg"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="costPrice"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs font-bold text-muted-foreground flex items-center gap-2">
+                        <DollarSign className="size-3 text-amber-600" /> Preço de Custo
+                      </FormLabel>
+                      <FormControl>
+                        <MoneyInput
+                          value={field.value}
+                          onChange={field.onChange}
+                          placeholder="0,00"
+                          className="bg-background/50 border-border rounded-xl focus:ring-primary/20 h-11 font-bold text-lg"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -308,86 +307,6 @@ export function InventorySheet({
               )}
             </div>
 
-            <div className="space-y-4 pt-4 border-t border-border/50">
-              <div className="flex items-center justify-between">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Comissão de Venda</p>
-              </div>
-              
-              <FormField
-                control={form.control}
-                name="commissionType"
-                render={({ field }) => (
-                  <FormItem className="space-y-3">
-                    <FormControl>
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        className="grid grid-cols-2 gap-3"
-                      >
-                        <FormItem className="flex items-center space-x-2 space-y-0 p-3 rounded-xl bg-background/30 border border-border/50 hover:border-primary/30 transition-colors cursor-pointer">
-                          <FormControl>
-                            <RadioGroupItem value="PERCENTAGE" />
-                          </FormControl>
-                          <FormLabel className="font-bold text-xs cursor-pointer flex-1">
-                            Porcentagem (%)
-                          </FormLabel>
-                        </FormItem>
-                        <FormItem className="flex items-center space-x-2 space-y-0 p-3 rounded-xl bg-background/30 border border-border/50 hover:border-primary/30 transition-colors cursor-pointer">
-                          <FormControl>
-                            <RadioGroupItem value="FIXED" />
-                          </FormControl>
-                          <FormLabel className="font-bold text-xs cursor-pointer flex-1">
-                            Valor Fixo (R$)
-                          </FormLabel>
-                        </FormItem>
-                      </RadioGroup>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="commissionValue"
-                render={({ field }) => {
-                  const price = parseFloat(form.watch("price") || "0")
-                  const isFixed = form.watch("commissionType") === "FIXED"
-                  const isDisabled = isFixed && price <= 0
-
-                  return (
-                    <FormItem>
-                      <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
-                        {isFixed ? "Valor Fixo (R$)" : "Porcentagem (%)"}
-                      </FormLabel>
-                      <FormControl>
-                        <div className="space-y-2">
-                          <div className="relative">
-                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-black text-xs">
-                              {isFixed ? "R$" : "%"}
-                            </div>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              placeholder="0.00"
-                              {...field}
-                              disabled={isDisabled}
-                              className={`bg-background/50 border-border rounded-xl focus:ring-primary/20 h-11 pl-10 font-black text-lg ${isDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
-                            />
-                          </div>
-                          {isDisabled && (
-                            <p className="text-[10px] text-amber-500 font-bold bg-amber-500/10 p-2 rounded-lg animate-in fade-in slide-in-from-top-1">
-                              Defina o preço de venda para habilitar a comissão fixa.
-                            </p>
-                          )}
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )
-                }}
-              />
-            </div>
 
             <SheetFooter className="mt-8 flex gap-3 sm:flex-row flex-col pt-6 border-t border-border/50">
               <SheetClose asChild>

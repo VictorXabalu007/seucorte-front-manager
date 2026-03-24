@@ -5,5 +5,5 @@ export interface Plano {
   description: string
   features: string[]
   billingCycle: 'monthly' | 'yearly'
-  active: boolean
+  isActive: boolean
 }

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Plus, Loader2, CalendarDays } from "lucide-react"
 import { toast } from "sonner"
 import { format } from "date-fns"
@@ -6,6 +6,8 @@ import { ptBR } from "date-fns/locale"
 import { useLoading } from "@/components/loading-provider"
 import type { DateRange } from "react-day-picker"
 import { useNavigate } from "react-router-dom"
+import { useDebounce } from "@/hooks/use-debounce"
+import { getActiveUnidadeId } from "@/lib/auth"
 
 import { AdminLayout } from "@/components/layout/AdminLayout"
 import { Button } from "@/components/ui/button"
@@ -26,6 +28,7 @@ const ITEMS_PER_PAGE = 8
 export default function AgendaPage() {
   const navigate = useNavigate()
   const { setIsLoading: setGlobalLoading } = useLoading()
+  const unidadeId = getActiveUnidadeId()
 
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [professionals, setProfessionals] = useState<Professional[]>([])
@@ -40,6 +43,11 @@ export default function AgendaPage() {
   const [dateFilter, setDateFilter] = useState("all")
   const [dateRange, setDateRange] = useState<DateRange | undefined>()
   const [currentPage, setCurrentPage] = useState(1)
+  const [totalAppointments, setTotalAppointments] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
+
+  // Debounce search
+  const debouncedSearchTerm = useDebounce(searchTerm, 500)
 
   // Sheet/dialog state
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -48,27 +56,86 @@ export default function AgendaPage() {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const [deletingAppointment, setDeletingAppointment] = useState<Appointment | null>(null)
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
+    if (!unidadeId) {
+      setIsLoading(false)
+      return
+    }
     setIsLoading(true)
-    setGlobalLoading(true)
     try {
-      const [apts, profs, svcs] = await Promise.all([
-        agendaService.getAppointments(),
-        agendaService.getProfessionals(),
-        agendaService.getServices(),
-      ])
-      setAppointments(apts)
-      setProfessionals(profs)
-      setServices(svcs)
-    } catch {
-      toast.error("Erro ao carregar dados da agenda")
+      const params: any = {
+        page: currentPage,
+        limit: ITEMS_PER_PAGE,
+        unidadeId,
+      }
+
+      if (debouncedSearchTerm) params.search = debouncedSearchTerm
+      if (professionalFilter !== "all") params.professionalId = professionalFilter
+      if (serviceFilter !== "all") params.serviceId = serviceFilter
+      if (statusFilter !== "all") params.status = statusFilter
+      
+      if (dateFilter === "today") {
+          const now = new Date()
+          params.startDate = new Date(now.setHours(0,0,0,0)).toISOString()
+          params.endDate = new Date(now.setHours(23,59,59,999)).toISOString()
+      } else if (dateFilter === "week") {
+          const now = new Date()
+          const sw = new Date(now.setDate(now.getDate() - now.getDay()))
+          const ew = new Date(sw)
+          ew.setDate(sw.getDate() + 6)
+          params.startDate = new Date(sw.setHours(0,0,0,0)).toISOString()
+          params.endDate = new Date(ew.setHours(23,59,59,999)).toISOString()
+      } else if (dateFilter === "month") {
+          const now = new Date()
+          params.startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+          params.endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString()
+      } else if (dateFilter === "custom" && dateRange?.from) {
+          params.startDate = new Date(dateRange.from.setHours(0,0,0,0)).toISOString()
+          if (dateRange.to) {
+              params.endDate = new Date(dateRange.to.setHours(23,59,59,999)).toISOString()
+          }
+      }
+
+      const res = await agendaService.getAppointmentsPaginated(params)
+      
+      setAppointments(res.data)
+      setTotalAppointments(res.total)
+      setTotalPages(res.pages)
+    } catch (error) {
+      console.error(error)
+      toast.error("Erro ao carregar agendamentos")
     } finally {
       setIsLoading(false)
       setGlobalLoading(false)
     }
-  }
+  }, [unidadeId, currentPage, debouncedSearchTerm, professionalFilter, serviceFilter, statusFilter, dateFilter, dateRange, setGlobalLoading])
 
-  useEffect(() => { fetchData() }, [])
+  const fetchInitialData = useCallback(async () => {
+    if (!unidadeId) return
+    try {
+        const [profs, svcs] = await Promise.all([
+            agendaService.getProfessionals(unidadeId),
+            agendaService.getServices(unidadeId),
+        ])
+        setProfessionals(profs)
+        setServices(svcs)
+    } catch (error) {
+        console.error(error)
+        toast.error("Erro ao carregar dados auxiliares")
+    }
+  }, [unidadeId])
+
+  useEffect(() => { 
+    fetchInitialData()
+  }, [fetchInitialData])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [debouncedSearchTerm, professionalFilter, serviceFilter, statusFilter, dateFilter, dateRange])
 
   const handleEdit = (a: Appointment) => {
     setEditingAppointment(a)
@@ -77,63 +144,65 @@ export default function AgendaPage() {
 
   const handleSaveEdit = async (data: AppointmentFormValues) => {
     if (!editingAppointment) return
+    setGlobalLoading(true)
     try {
-      const prof = professionals.find(p => p.id === data.professionalId)
-      const svc = services.find(s => s.id === data.serviceId)
+      const dateStr = format(data.dateObj, "yyyy-MM-dd")
+      const startTime = new Date(`${dateStr}T${data.startTime}:00`).toISOString()
+      const endTime = new Date(`${dateStr}T${data.endTime}:00`).toISOString()
+
       await agendaService.updateAppointment(editingAppointment.id, {
         clientName: data.clientName,
         clientPhone: data.clientPhone,
         professionalId: data.professionalId,
-        professionalName: prof?.name || "",
         serviceId: data.serviceId,
-        serviceName: svc?.name || "",
-        serviceDuration: svc?.duration || 30,
-        date: format(data.dateObj, "dd MMM, yyyy", { locale: ptBR }),
-        rawDate: data.dateObj,
-        startTime: data.startTime,
-        endTime: data.endTime,
+        serviceDuration: services.find(s => s.id === data.serviceId)?.duration || 30,
+        startTime,
+        endTime,
         status: data.status,
         paymentStatus: data.paymentStatus,
-        amount: data.amount,
+        amount: Number(data.amount),
         notes: data.notes,
-        initials: data.clientName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2),
-      })
+      } as any)
       await fetchData()
       setIsEditOpen(false)
       setEditingAppointment(null)
       toast.success("Agendamento atualizado com sucesso!")
     } catch {
       toast.error("Erro ao atualizar agendamento")
+    } finally {
+      setGlobalLoading(false)
     }
   }
 
   const handleSaveCreate = async (data: AppointmentFormValues) => {
+    if (!unidadeId) return
+    setGlobalLoading(true)
     try {
-      const prof = professionals.find(p => p.id === data.professionalId)
-      const svc = services.find(s => s.id === data.serviceId)
+      const dateStr = format(data.dateObj, "yyyy-MM-dd")
+      const startTime = new Date(`${dateStr}T${data.startTime}:00`).toISOString()
+      const endTime = new Date(`${dateStr}T${data.endTime}:00`).toISOString()
+
       await agendaService.createAppointment({
         clientName: data.clientName,
         clientPhone: data.clientPhone,
         professionalId: data.professionalId,
-        professionalName: prof?.name || "",
         serviceId: data.serviceId,
-        serviceName: svc?.name || "",
-        serviceDuration: svc?.duration || 30,
-        date: format(data.dateObj, "dd MMM, yyyy", { locale: ptBR }),
-        rawDate: data.dateObj,
-        startTime: data.startTime,
-        endTime: data.endTime,
+        serviceDuration: services.find(s => s.id === data.serviceId)?.duration || 30,
+        startTime,
+        endTime,
         status: data.status,
         paymentStatus: data.paymentStatus,
-        amount: data.amount,
+        amount: Number(data.amount),
         notes: data.notes,
-        initials: data.clientName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2),
-      })
+        unidadeId,
+      } as any)
       await fetchData()
       setIsCreateOpen(false)
       toast.success("Agendamento criado com sucesso!")
     } catch {
       toast.error("Erro ao criar agendamento")
+    } finally {
+      setGlobalLoading(false)
     }
   }
 
@@ -144,6 +213,7 @@ export default function AgendaPage() {
 
   const handleConfirmDelete = async () => {
     if (!deletingAppointment) return
+    setGlobalLoading(true)
     try {
       await agendaService.deleteAppointment(deletingAppointment.id)
       await fetchData()
@@ -152,50 +222,10 @@ export default function AgendaPage() {
       toast.success("Agendamento excluído com sucesso!")
     } catch {
       toast.error("Erro ao excluir agendamento")
+    } finally {
+      setGlobalLoading(false)
     }
   }
-
-  const filteredAppointments = useMemo(() => {
-    return appointments.filter(a => {
-      const matchesSearch = a.clientName.toLowerCase().includes(searchTerm.toLowerCase())
-      const matchesProfessional = professionalFilter === "all" || a.professionalId === professionalFilter
-      const matchesService = serviceFilter === "all" || a.serviceId === serviceFilter
-      const matchesStatus = statusFilter === "all" || a.status === statusFilter
-
-      const aptDate = new Date(a.rawDate)
-      aptDate.setHours(0, 0, 0, 0)
-      const now = new Date()
-      now.setHours(0, 0, 0, 0)
-      const isToday = aptDate.getTime() === now.getTime()
-      const startOfWeek = new Date(now)
-      startOfWeek.setDate(now.getDate() - now.getDay())
-      const endOfWeek = new Date(startOfWeek)
-      endOfWeek.setDate(startOfWeek.getDate() + 6)
-      const isThisWeek = aptDate >= startOfWeek && aptDate <= endOfWeek
-      const isThisMonth = aptDate.getMonth() === now.getMonth() && aptDate.getFullYear() === now.getFullYear()
-
-      let matchesDate = true
-      if (dateFilter === "today") matchesDate = isToday
-      else if (dateFilter === "week") matchesDate = isThisWeek
-      else if (dateFilter === "month") matchesDate = isThisMonth
-      else if (dateFilter === "custom" && dateRange?.from) {
-        const from = new Date(dateRange.from); from.setHours(0, 0, 0, 0)
-        if (dateRange.to) {
-          const to = new Date(dateRange.to); to.setHours(23, 59, 59, 999)
-          matchesDate = aptDate >= from && aptDate <= to
-        } else {
-          matchesDate = aptDate.getTime() === from.getTime()
-        }
-      }
-
-      return matchesSearch && matchesProfessional && matchesService && matchesStatus && matchesDate
-    })
-  }, [appointments, searchTerm, professionalFilter, serviceFilter, statusFilter, dateFilter, dateRange])
-
-  const totalPages = Math.ceil(filteredAppointments.length / ITEMS_PER_PAGE)
-  const paginatedAppointments = filteredAppointments.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE
-  )
 
   const clearFilters = () => {
     setSearchTerm(""); setProfessionalFilter("all"); setServiceFilter("all")
@@ -276,8 +306,8 @@ export default function AgendaPage() {
           </div>
         ) : (
           <AppointmentTable
-            appointments={paginatedAppointments}
-            totalAppointments={filteredAppointments.length}
+            appointments={appointments}
+            totalAppointments={totalAppointments}
             currentPage={currentPage}
             totalPages={totalPages}
             itemsPerPage={ITEMS_PER_PAGE}

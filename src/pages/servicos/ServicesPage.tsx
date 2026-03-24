@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo } from "react"
 import { Plus, Loader2, Scissors, TrendingUp, Clock, DollarSign } from "lucide-react"
 import { toast } from "sonner"
 import { useLoading } from "@/components/loading-provider"
+import { getActiveUnidadeId } from "@/lib/auth"
+import { formatBRL } from "@/lib/utils"
 
 import { AdminLayout } from "@/components/layout/AdminLayout"
 import { Button } from "@/components/ui/button"
@@ -60,7 +62,7 @@ export default function ServicesPage() {
         s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (s.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
       const matchesCategory = categoryFilter === "all" || s.category === categoryFilter
-      return matchesSearch && matchesCategory && s.isActive
+      return matchesSearch && matchesCategory
     })
   }, [services, searchTerm, categoryFilter])
 
@@ -90,8 +92,9 @@ export default function ServicesPage() {
     try {
       const serviceData = {
         ...data,
-        price: parseFloat(data.price),
+        price: data.price,
         duration: parseInt(data.duration),
+        unidadeId: getActiveUnidadeId(),
       }
 
       if (editingService) {
@@ -124,7 +127,7 @@ export default function ServicesPage() {
     },
     { 
       label: "Média de Preço", 
-      value: (services.filter(s => s.isActive).reduce((acc, s) => acc + s.price, 0) / (services.filter(s => s.isActive).length || 1)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
+      value: formatBRL(services.filter(s => s.isActive).reduce((acc, s) => acc + s.price, 0) / (services.filter(s => s.isActive).length || 1)), 
       icon: DollarSign, 
       color: "text-emerald-500",
       gradient: "from-emerald-500/20 to-emerald-500/5"

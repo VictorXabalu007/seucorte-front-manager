@@ -3,6 +3,7 @@ import type { Service } from "../types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { formatBRL } from "@/lib/utils"
 
 interface ServiceCardProps {
   service: Service
@@ -14,9 +15,21 @@ export function ServiceCard({ service, onEdit, onDelete }: ServiceCardProps) {
   return (
     <Card className="group overflow-hidden bg-card/40 border-border/50 backdrop-blur-sm hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5">
       <CardHeader className="p-4 pb-0 flex flex-row items-center justify-between space-y-0">
-        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 font-bold px-2 py-0.5 rounded-lg text-[10px] uppercase tracking-wider">
-          {service.category}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 font-bold px-2 py-0.5 rounded-lg text-[10px] uppercase tracking-wider">
+            {service.category}
+          </Badge>
+          <Badge 
+            variant="outline" 
+            className={`font-bold px-2 py-0.5 rounded-lg text-[10px] uppercase tracking-wider ${
+              service.isActive 
+                ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" 
+                : "bg-muted text-muted-foreground border-border"
+            }`}
+          >
+            {service.isActive ? "Ativo" : "Inativo"}
+          </Badge>
+        </div>
         <div className="flex items-center gap-0.5">
           <Button 
             variant="ghost" 
@@ -52,7 +65,7 @@ export function ServiceCard({ service, onEdit, onDelete }: ServiceCardProps) {
           <div className="flex items-center gap-1.5 text-primary">
             <DollarSign className="size-3.5" />
             <span className="text-sm font-black">
-              {service.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              {formatBRL(service.price)}
             </span>
           </div>
         </div>

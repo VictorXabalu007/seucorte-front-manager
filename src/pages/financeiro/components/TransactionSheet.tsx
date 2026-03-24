@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { MoneyInput } from "@/components/ui/money-input"
 import { Label } from "@/components/ui/label"
 import {
   Select,
@@ -78,7 +79,12 @@ export function TransactionSheet({ isOpen, onOpenChange }: TransactionSheetProps
                     <Label className="text-xs font-bold text-muted-foreground flex items-center gap-2">
                         <DollarSign className="size-3 text-primary" /> Valor
                     </Label>
-                    <Input type="number" placeholder="R$ 0,00" className="h-11 bg-background/50 border-border rounded-xl focus:ring-primary/20" />
+                    <MoneyInput 
+                        placeholder="R$ 0,00" 
+                        className="h-11 bg-background/50 border-border rounded-xl focus:ring-primary/20"
+                        value={0}
+                        onChange={() => {}}
+                    />
                 </div>
                 <div className="space-y-2">
                     <Label className="text-xs font-bold text-muted-foreground flex items-center gap-2">

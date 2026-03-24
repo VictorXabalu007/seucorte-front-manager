@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useCallback } from "react"
 import {
   ChevronLeft, ChevronRight, Plus, List, Clock, User,
   CalendarIcon, RefreshCcw, Scissors, Phone,
@@ -13,6 +13,7 @@ import type { DateRange } from "react-day-picker"
 import { ptBR } from "date-fns/locale"
 import { useNavigate } from "react-router-dom"
 import { useLoading } from "@/components/loading-provider"
+import { getActiveUnidadeId } from "@/lib/auth"
 
 import { AdminLayout } from "@/components/layout/AdminLayout"
 import { Button } from "@/components/ui/button"
@@ -46,14 +47,16 @@ const STATUS_COLORS: Record<string, string> = {
   NO_SHOW: "bg-orange-500/20 border-orange-400/30 text-orange-400",
 }
 
-function getInitialColor(id: string) {
-  const m: Record<string, string> = { p1: "#10B981", p2: "#6366F1", p3: "#F59E0B", p4: "#EC4899" }
-  return m[id] || "#94A3B8"
+// Função para obter a cor do barbeiro da lista de profissionais carregada
+const getProfessionalColor = (professionals: Professional[], id: string) => {
+  const prof = professionals.find(p => p.id === id)
+  return prof?.color || "#10B981"
 }
 
 export default function AgendaCalendarPage() {
   const navigate = useNavigate()
   const { setIsLoading: setGlobalLoading } = useLoading()
+  const unidadeId = getActiveUnidadeId()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [professionals, setProfessionals] = useState<Professional[]>([])
@@ -73,14 +76,36 @@ export default function AgendaCalendarPage() {
   const [deletingAppointment, setDeletingAppointment] = useState<Appointment | null>(null)
   const [openPopoverId, setOpenPopoverId] = useState<string | null>(null)
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
+    if (!unidadeId) {
+      setIsLoading(false)
+      return
+    }
     setIsLoading(true)
-    setGlobalLoading(true)
     try {
+      let start: Date, end: Date
+      
+      if (viewMode === "day") {
+          start = new Date(currentDate); start.setHours(0,0,0,0)
+          end = new Date(currentDate); end.setHours(23,59,59,999)
+      } else if (viewMode === "week") {
+          start = startOfWeek(currentDate, { weekStartsOn: 1 })
+          end = endOfWeek(currentDate, { weekStartsOn: 1 })
+      } else {
+          start = startOfWeek(startOfMonth(currentDate), { weekStartsOn: 1 })
+          end = endOfWeek(endOfMonth(currentDate), { weekStartsOn: 1 })
+      }
+
+      const params = {
+          startDate: start.toISOString(),
+          endDate: end.toISOString(),
+          unidadeId,
+      }
+
       const [apts, profs, svcs] = await Promise.all([
-        agendaService.getAppointments(),
-        agendaService.getProfessionals(),
-        agendaService.getServices(),
+        agendaService.getAppointments(params),
+        agendaService.getProfessionals(unidadeId),
+        agendaService.getServices(unidadeId),
       ])
       setAppointments(apts)
       setProfessionals(profs)
@@ -91,9 +116,11 @@ export default function AgendaCalendarPage() {
       setIsLoading(false)
       setGlobalLoading(false)
     }
-  }
+  }, [unidadeId, currentDate, viewMode, setGlobalLoading])
 
-  useEffect(() => { fetchData() }, [])
+  useEffect(() => { 
+    fetchData() 
+  }, [fetchData])
 
   const weekDays = useMemo(() => {
     const start = startOfWeek(currentDate, { weekStartsOn: 1 })
@@ -128,9 +155,6 @@ export default function AgendaCalendarPage() {
   useEffect(() => {
     if (dateFilter === "today") {
       setCurrentDate(new Date())
-    } else if (dateFilter === "week" || dateFilter === "month") {
-      // These are already handled by the viewModes, but let's ensure we are at the right date
-      // setCurrentDate(new Date()) // Optional: uncomment if we want "Week" button to always go to today's week
     } else if (dateFilter === "custom" && dateRange?.from) {
       setCurrentDate(dateRange.from)
     }
@@ -237,81 +261,102 @@ export default function AgendaCalendarPage() {
     professionalFilter === "all" ? professionals : professionals.filter(p => p.id === professionalFilter)
   , [professionals, professionalFilter])
 
-  const AppointmentPill = ({ a }: { a: Appointment & { top?: string; height?: string } }) => (
-    <Popover open={openPopoverId === a.id} onOpenChange={(o) => setOpenPopoverId(o ? a.id : null)}>
-      <Tooltip>
-        <PopoverTrigger asChild>
-          <TooltipTrigger asChild>
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                handleAppointmentClick(a.id)
-              }}
-              style={a.top ? { top: a.top, height: a.height, position: "absolute", left: 2, right: 2, zIndex: 5 } : { zIndex: 5 }}
-              className={cn(
-                "w-full rounded-lg border px-1.5 py-0.5 text-left transition-all hover:brightness-110 cursor-pointer overflow-hidden text-[10px] font-bold leading-tight",
-                STATUS_COLORS[a.status] || STATUS_COLORS.SCHEDULED
-              )}
-            >
-              <p className="truncate">{a.clientName}</p>
-              {(a.height ? parseInt(a.height) : 0) >= 40 && <p className="truncate opacity-80">{a.serviceName}</p>}
-            </button>
-          </TooltipTrigger>
-        </PopoverTrigger>
-        <TooltipContent side="right" className="bg-popover border-border animate-in fade-in zoom-in-95 duration-200 text-white p-0 overflow-hidden rounded-xl shadow-2xl min-w-52 z-[70]">
-          <div className="p-3 space-y-1.5">
-            <div className="flex items-center gap-2">
-              <div className="size-7 rounded-full bg-muted flex items-center justify-center text-[10px] font-black">{a.initials}</div>
-              <div>
-                <p className="font-bold text-sm text-white">{a.clientName}</p>
-                {a.clientPhone && <p className="text-[10px] text-slate-400 flex items-center gap-1"><Phone className="size-2.5" />{a.clientPhone}</p>}
+  const AppointmentPill = ({ a }: { a: Appointment & { top?: string; height?: string } }) => {
+    const barberColor = getProfessionalColor(professionals, a.professionalId)
+    const isCancelled = a.status === "CANCELLED"
+    
+    const pillStyle = {
+      zIndex: 5,
+      backgroundColor: `${barberColor}15`, // Fundo suave com a cor do barbeiro
+      color: barberColor, // Texto com a cor do barbeiro
+      borderColor: `${barberColor}40`, // Borda com a cor do barbeiro
+      borderLeft: `4px solid ${barberColor}`,
+      ...(a.top ? {
+        top: a.top,
+        height: a.height,
+        position: "absolute" as const,
+        left: 2,
+        right: 2
+      } : {})
+    }
+
+    return (
+      <Popover open={openPopoverId === a.id} onOpenChange={(o) => setOpenPopoverId(o ? a.id : null)}>
+        <Tooltip>
+          <PopoverTrigger asChild>
+            <TooltipTrigger asChild>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleAppointmentClick(a.id)
+                }}
+                className={cn(
+                  "w-full rounded-lg border px-1.5 py-0.5 text-left transition-all hover:brightness-110 cursor-pointer overflow-hidden text-[10px] font-bold leading-tight",
+                  isCancelled && "line-through opacity-50"
+                )}
+                style={pillStyle}
+              >
+                <p className="truncate">{a.clientName}</p>
+                {(a.height ? parseInt(a.height) : 0) >= 40 && <p className="truncate opacity-80">{a.serviceName}</p>}
+              </button>
+            </TooltipTrigger>
+          </PopoverTrigger>
+          <TooltipContent side="right" className="bg-popover border-border animate-in fade-in zoom-in-95 duration-200 text-white p-0 overflow-hidden rounded-xl shadow-2xl min-w-52 z-[70]">
+            <div className="p-3 space-y-1.5">
+              <div className="flex items-center gap-2">
+                <div className="size-7 rounded-full bg-muted flex items-center justify-center text-[10px] font-black">{a.initials}</div>
+                <div>
+                  <p className="font-bold text-sm text-white">{a.clientName}</p>
+                  {a.clientPhone && <p className="text-[10px] text-slate-400 flex items-center gap-1"><Phone className="size-2.5" />{a.clientPhone}</p>}
+                </div>
+              </div>
+              <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+                <Scissors className="size-3 text-primary" />{a.serviceName} ({a.serviceDuration}min)
+              </div>
+              <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+                <Clock className="size-3 text-primary" />{a.startTime} – {a.endTime}
+              </div>
+              <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+                <User className="size-3 text-primary" />{a.professionalName}
+              </div>
+              <div className="flex items-center gap-2 pt-1">
+                <AppointmentStatusBadge status={a.status} />
+                <AppointmentStatusBadge status={a.status} payment={a.paymentStatus} />
               </div>
             </div>
-            <div className="text-xs text-muted-foreground flex items-center gap-1.5">
-              <Scissors className="size-3 text-primary" />{a.serviceName} ({a.serviceDuration}min)
+          </TooltipContent>
+        </Tooltip>
+        <PopoverContent side="right" align="start" className="w-64 p-0 bg-card border-border rounded-2xl shadow-2xl overflow-hidden z-[80]">
+          <div className="p-4 space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="size-10 rounded-full bg-muted flex items-center justify-center font-black text-sm border border-border">{a.initials}</div>
+              <div>
+                <p className="font-black text-white">{a.clientName}</p>
+                {a.clientPhone && <p className="text-[10px] text-slate-400">{a.clientPhone}</p>}
+              </div>
             </div>
-            <div className="text-xs text-muted-foreground flex items-center gap-1.5">
-              <Clock className="size-3 text-primary" />{a.startTime} – {a.endTime}
+            <div className="space-y-1.5 text-sm">
+              <div className="flex justify-between text-slate-400"><span>Serviço</span><span className="text-white font-semibold">{a.serviceName}</span></div>
+              <div className="flex justify-between text-slate-400"><span>Barbeiro</span><span className="text-white font-semibold">{a.professionalName}</span></div>
+              <div className="flex justify-between text-slate-400"><span>Horário</span><span className="text-white font-semibold">{a.startTime} – {a.endTime}</span></div>
+              <div className="flex justify-between text-slate-400"><span>Valor</span><span className="text-emerald-400 font-bold">{a.amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span></div>
             </div>
-            <div className="text-xs text-muted-foreground flex items-center gap-1.5">
-              <User className="size-3 text-primary" />{a.professionalName}
-            </div>
-            <div className="flex items-center gap-2 pt-1">
+            <div className="flex gap-2 pt-1">
               <AppointmentStatusBadge status={a.status} />
               <AppointmentStatusBadge status={a.status} payment={a.paymentStatus} />
             </div>
-          </div>
-        </TooltipContent>
-      </Tooltip>
-      <PopoverContent side="right" align="start" className="w-64 p-0 bg-card border-border rounded-2xl shadow-2xl overflow-hidden z-[80]">
-        <div className="p-4 space-y-3">
-          <div className="flex items-center gap-3">
-            <div className="size-10 rounded-full bg-muted flex items-center justify-center font-black text-sm border border-border">{a.initials}</div>
-            <div>
-              <p className="font-black text-white">{a.clientName}</p>
-              {a.clientPhone && <p className="text-[10px] text-slate-400">{a.clientPhone}</p>}
+            <div className="flex gap-2 pt-2 border-t border-border">
+              <Button size="sm" onClick={() => handleEditFromPopover(a)} className="flex-1 h-8 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold">Editar</Button>
+              {a.status !== "COMPLETED" && a.status !== "CANCELLED" && (
+                <Button size="sm" variant="ghost" onClick={() => handleDeleteFromPopover(a)} className="h-8 rounded-lg text-destructive hover:text-destructive/80 hover:bg-destructive/10 text-xs font-bold px-3">Excluir</Button>
+              )}
             </div>
           </div>
-          <div className="space-y-1.5 text-sm">
-            <div className="flex justify-between text-slate-400"><span>Serviço</span><span className="text-white font-semibold">{a.serviceName}</span></div>
-            <div className="flex justify-between text-slate-400"><span>Barbeiro</span><span className="text-white font-semibold">{a.professionalName}</span></div>
-            <div className="flex justify-between text-slate-400"><span>Horário</span><span className="text-white font-semibold">{a.startTime} – {a.endTime}</span></div>
-            <div className="flex justify-between text-slate-400"><span>Valor</span><span className="text-emerald-400 font-bold">{a.amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span></div>
-          </div>
-          <div className="flex gap-2 pt-1">
-            <AppointmentStatusBadge status={a.status} />
-            <AppointmentStatusBadge status={a.status} payment={a.paymentStatus} />
-          </div>
-          <div className="flex gap-2 pt-2 border-t border-border">
-            <Button size="sm" onClick={() => handleEditFromPopover(a)} className="flex-1 h-8 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold">Editar</Button>
-            {a.status !== "COMPLETED" && a.status !== "CANCELLED" && (
-              <Button size="sm" variant="ghost" onClick={() => handleDeleteFromPopover(a)} className="h-8 rounded-lg text-destructive hover:text-destructive/80 hover:bg-destructive/10 text-xs font-bold px-3">Excluir</Button>
-            )}
-          </div>
-        </div>
-      </PopoverContent>
-    </Popover>
-  )
+        </PopoverContent>
+      </Popover>
+    )
+  }
+
 
   return (
     <AdminLayout>
@@ -548,7 +593,7 @@ export default function AgendaCalendarPage() {
                           <div className="mt-1 space-y-0.5">
                             {dayApts.slice(0, 3).map(a => (
                               <div key={a.id} className="text-[10px] font-bold truncate rounded px-1 py-0.5"
-                                style={{ backgroundColor: `${getInitialColor(a.professionalId)}22`, color: getInitialColor(a.professionalId) }}>
+                                style={{ backgroundColor: `${getProfessionalColor(professionals, a.professionalId)}22`, color: getProfessionalColor(professionals, a.professionalId) }}>
                                 {a.startTime} {a.clientName.split(" ")[0]}
                               </div>
                             ))}

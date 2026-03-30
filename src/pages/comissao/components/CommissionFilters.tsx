@@ -118,9 +118,9 @@ export function CommissionFilters({
                 </div>
 
                 <div className="space-y-3">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Tipo de Venda</p>
-                    <div className="grid grid-cols-2 gap-2">
-                        {["all", "SERVICE", "PRODUCT"].map((tipo) => (
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Tipo de Atendimento</p>
+                    <div className="grid grid-cols-3 gap-2">
+                        {["all", "AVULSO", "PLANO"].map((tipo) => (
                             <Button 
                                 key={tipo}
                                 variant={typeFilter === tipo ? "default" : "outline"}
@@ -132,7 +132,7 @@ export function CommissionFilters({
                                 )}
                                 onClick={() => setTypeFilter(tipo)}
                             >
-                                {tipo === "all" ? "Todos" : tipo === "SERVICE" ? "Serviço" : "Produto"}
+                                {tipo === "all" ? "Todos" : tipo === "AVULSO" ? "Avulso" : "Plano"}
                             </Button>
                         ))}
                     </div>

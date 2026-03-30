@@ -18,6 +18,8 @@ import UnidadesPage from "./pages/unidades/UnidadesPage"
 import ServicesPage from "./pages/servicos/ServicesPage"
 import CombosPage from "./pages/combos/CombosPage"
 import PlanosPage from "./pages/planos/PlanosPage"
+import PlanoFormPage from "./pages/planos/PlanoFormPage"
+import AssinanteHistoricoPage from "./pages/planos/AssinanteHistoricoPage"
 import BarbersPage from "./pages/barbeiros/BarbersPage"
 import BarberFormPage from "./pages/barbeiros/BarberFormPage"
 import FirstAccessPage from "./pages/login/FirstAccessPage"
@@ -29,12 +31,8 @@ const DashboardPage = () => {
   useEffect(() => { setIsLoading(false) }, [setIsLoading])
   return <AdminLayout><div className="p-8"><h1 className="text-2xl font-bold">Dashboard</h1><p className="text-slate-500">Em breve...</p></div></AdminLayout>
 }
-const SettingsPage = () => {
-  const { setIsLoading } = useLoading()
-  useEffect(() => { setIsLoading(false) }, [setIsLoading])
-  return <AdminLayout><div className="p-8"><h1 className="text-2xl font-bold">Configurações</h1><p className="text-slate-500">Em breve...</p></div></AdminLayout>
-}
 import ReportsPage from "./pages/relatorios/ReportsPage"
+import SettingsPage from "./pages/settings/SettingsPage"
 import { Toaster } from "sonner"
 import { ThemeProvider } from "./components/theme-provider"
 import { LoadingProvider } from "./components/loading-provider"
@@ -70,6 +68,9 @@ function App() {
             <Route path="/metas" element={<MetasPage />} />
             <Route path="/unidades" element={<UnidadesPage />} />
             <Route path="/planos" element={<PlanosPage />} />
+            <Route path="/planos/novo" element={<PlanoFormPage />} />
+            <Route path="/planos/:id/editar" element={<PlanoFormPage />} />
+            <Route path="/planos/assinante/:id/historico" element={<AssinanteHistoricoPage />} />
             <Route path="/relatorios" element={<ReportsPage />} />
             <Route path="/configuracoes" element={<SettingsPage />} />
           </Routes>

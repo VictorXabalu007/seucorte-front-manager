@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Onyx Blade - Subscription Control</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              colors: {
+                "surface-container-lowest": "#000000",
+                "tertiary-dim": "#eed53e",
+                "on-primary-fixed-variant": "#506900",
+                "secondary-fixed": "#e4e2e1",
+                "surface-container-high": "#201f1f",
+                "surface": "#0e0e0e",
+                "outline": "#767575",
+                "surface-container": "#1a1919",
+                "background": "#0e0e0e",
+                "inverse-surface": "#fcf9f8",
+                "on-tertiary": "#675a00",
+                "on-primary-fixed": "#384b00",
+                "on-error-container": "#ffd2c8",
+                "outline-variant": "#484847",
+                "on-error": "#450900",
+                "secondary": "#e4e2e1",
+                "on-primary-container": "#485e00",
+                "tertiary-fixed": "#fce34b",
+                "on-background": "#ffffff",
+                "error": "#ff7351",
+                "surface-container-low": "#131313",
+                "tertiary": "#fff1b2",
+                "on-surface": "#ffffff",
+                "surface-bright": "#2c2c2c",
+                "on-secondary-fixed": "#3f3f3f",
+                "surface-tint": "#f3ffcd",
+                "secondary-fixed-dim": "#d6d4d3",
+                "on-secondary-fixed-variant": "#5c5b5b",
+                "tertiary-fixed-dim": "#eed53e",
+                "surface-dim": "#0e0e0e",
+                "primary-fixed-dim": "#b9ef00",
+                "on-tertiary-fixed-variant": "#685c00",
+                "on-tertiary-container": "#5d5200",
+                "on-tertiary-fixed": "#493f00",
+                "on-surface-variant": "#adaaaa",
+                "primary-fixed": "#c5fe00",
+                "surface-container-highest": "#262626",
+                "error-dim": "#d53d18",
+                "on-primary": "#4f6700",
+                "on-secondary-container": "#d2d0cf",
+                "on-secondary": "#525151",
+                "primary": "#f3ffcd",
+                "error-container": "#b92902",
+                "secondary-container": "#474747",
+                "primary-container": "#c5fe00",
+                "tertiary-container": "#fce34b",
+                "surface-variant": "#262626",
+                "inverse-on-surface": "#565555",
+                "primary-dim": "#b9ef00",
+                "inverse-primary": "#4f6700",
+                "secondary-dim": "#d6d4d3"
+              },
+              fontFamily: {
+                "headline": ["Plus Jakarta Sans"],
+                "body": ["Inter"],
+                "label": ["Inter"]
+              },
+              borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+            },
+          },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3, .font-headline { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .glass-card {
+            background: rgba(26, 25, 25, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .neon-glow {
+            box-shadow: 0 0 15px rgba(197, 254, 0, 0.2);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface min-h-screen">
+<!-- SideNavBar (Shared Component) -->
+<aside class="h-screen w-64 fixed left-0 top-0 border-r border-[#1a1919] bg-[#0e0e0e] shadow-[40px_0_40px_rgba(255,255,255,0.04)] flex flex-col p-4 z-50">
+<div class="mb-10 px-4">
+<h1 class="text-2xl font-black text-[#c5fe00] tracking-tighter">Onyx Blade</h1>
+<p class="text-[10px] text-on-surface-variant uppercase tracking-[0.2em] font-bold">Premium Management</p>
+</div>
+<nav class="flex-1 space-y-2">
+<a class="flex items-center gap-3 px-4 py-3 text-[#adaaaa] hover:text-[#f3ffcd] transition-colors hover:bg-[#1a1919] rounded-lg" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-['Plus_Jakarta_Sans'] font-bold tracking-tight">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-[#adaaaa] hover:text-[#f3ffcd] transition-colors hover:bg-[#1a1919] rounded-lg" href="#">
+<span class="material-symbols-outlined">group</span>
+<span class="font-['Plus_Jakarta_Sans'] font-bold tracking-tight">Subscribers</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-[#c5fe00] bg-[#131313] rounded-lg border-r-4 border-[#c5fe00]" href="#">
+<span class="material-symbols-outlined">loyalty</span>
+<span class="font-['Plus_Jakarta_Sans'] font-bold tracking-tight">Plans</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-[#adaaaa] hover:text-[#f3ffcd] transition-colors hover:bg-[#1a1919] rounded-lg" href="#">
+<span class="material-symbols-outlined">payments</span>
+<span class="font-['Plus_Jakarta_Sans'] font-bold tracking-tight">Financials</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-[#adaaaa] hover:text-[#f3ffcd] transition-colors hover:bg-[#1a1919] rounded-lg" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-['Plus_Jakarta_Sans'] font-bold tracking-tight">Settings</span>
+</a>
+</nav>
+<div class="mt-auto pt-6 border-t border-outline-variant/20">
+<button class="w-full bg-primary-container text-on-primary-container font-bold py-3 rounded-xl flex items-center justify-center gap-2 scale-95 active:scale-90 transition-transform">
+<span class="material-symbols-outlined">add_circle</span>
+                New Subscription
+            </button>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="ml-64 min-h-screen">
+<!-- TopNavBar (Shared Component) -->
+<header class="fixed top-0 right-0 left-64 h-16 z-40 bg-[#0e0e0e]/60 backdrop-blur-xl flex justify-between items-center px-8 w-full border-b border-white/5">
+<div class="flex items-center gap-8">
+<h2 class="text-lg font-bold text-[#f3ffcd] font-['Inter']">Subscription Control</h2>
+<nav class="flex gap-6">
+<a class="text-[#c5fe00] border-b-2 border-[#c5fe00] pb-1 text-sm font-medium" href="#">Overview</a>
+<a class="text-[#adaaaa] hover:text-[#f3ffcd] text-sm font-medium transition-colors" href="#">Analytics</a>
+<a class="text-[#adaaaa] hover:text-[#f3ffcd] text-sm font-medium transition-colors" href="#">Reports</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">search</span>
+<input class="bg-surface-container border-none rounded-full pl-10 pr-4 py-1.5 text-sm w-64 focus:ring-1 focus:ring-primary-container" placeholder="Search data..." type="text"/>
+</div>
+<button class="hover:bg-[#1a1919] rounded-full p-2 transition-all opacity-80 hover:opacity-100">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<div class="h-8 w-8 rounded-full bg-surface-container-high overflow-hidden border border-primary-container/20">
+<img class="h-full w-full object-cover" data-alt="professional barber with styled beard and modern haircut posing in a high-end luxury barbershop environment" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB0lVX66C9LlD_eq9O7iB0hA31AR4rIgjbTTjKYU2TxQzJH8I2MXV5qLWMIX1JUXAblncvgBo9VCMQJnky2_EpSQRI9-leAXq30Pk6IX7wilw-_BLZrRr3wYYKipaa9_9Gr7ARJ6k9nk5BGX4D09nlou3kAnLIkjeaT-NWbJ_B4h2nolEM7_LNKPW4FF7PSN6JHd_FGMiDUO4peZlS-jmXowEsho2dQVHi8UMlLNCGh9ajTnLlsq5UkEk5Ia0qYHpmeI_2SE53Ej8o"/>
+</div>
+</div>
+</header>
+<div class="pt-24 px-8 pb-12 space-y-10 max-w-[1600px] mx-auto">
+<!-- Section 1: Financial KPIs -->
+<section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+<!-- Revenue Card -->
+<div class="glass-card p-6 rounded-2xl relative overflow-hidden group">
+<div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-6xl text-primary-container">payments</span>
+</div>
+<p class="text-on-surface-variant text-sm font-medium mb-1">Faturamento Bruto</p>
+<h3 class="text-3xl font-black text-on-surface tracking-tight">R$ 42.850</h3>
+<div class="mt-4 flex items-center gap-2 text-primary-container text-xs font-bold">
+<span class="material-symbols-outlined text-sm">trending_up</span>
+<span>+12.5% vs mês anterior</span>
+</div>
+</div>
+<!-- Active Subscribers -->
+<div class="glass-card p-6 rounded-2xl">
+<p class="text-on-surface-variant text-sm font-medium mb-1">Assinantes Ativos</p>
+<h3 class="text-3xl font-black text-on-surface tracking-tight">1,248</h3>
+<div class="mt-4 flex items-center gap-2 text-primary-container text-xs font-bold">
+<span class="material-symbols-outlined text-sm">person_add</span>
+<span>84 novos este mês</span>
+</div>
+</div>
+<!-- Default Rate -->
+<div class="glass-card p-6 rounded-2xl border-l-4 border-error/50">
+<p class="text-on-surface-variant text-sm font-medium mb-1">Inadimplência</p>
+<h3 class="text-3xl font-black text-error tracking-tight">4.2%</h3>
+<div class="mt-4 flex items-center gap-2 text-error text-xs font-bold">
+<span class="material-symbols-outlined text-sm">warning</span>
+<span>52 pagamentos pendentes</span>
+</div>
+</div>
+<!-- Churn Rate -->
+<div class="glass-card p-6 rounded-2xl">
+<p class="text-on-surface-variant text-sm font-medium mb-1">Cancelamentos (Churn)</p>
+<h3 class="text-3xl font-black text-on-surface tracking-tight">1.8%</h3>
+<div class="mt-4 flex items-center gap-2 text-on-surface-variant text-xs font-bold">
+<span class="material-symbols-outlined text-sm">remove_circle</span>
+<span>Dentro da meta (2%)</span>
+</div>
+</div>
+</section>
+<!-- Section 2: Plan Performance -->
+<section class="space-y-6">
+<div class="flex justify-between items-end">
+<div>
+<h2 class="text-2xl font-black text-on-surface tracking-tight">Performance por Plano</h2>
+<p class="text-on-surface-variant text-sm">Distribuição de receita e membros por modalidade</p>
+</div>
+<button class="bg-surface-container hover:bg-surface-container-high text-primary-container px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 transition-all border border-primary-container/10">
+<span class="material-symbols-outlined text-lg">add</span>
+                        Novo Plano
+                    </button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Plan Pro -->
+<div class="bg-surface-container-low p-6 rounded-2xl border border-white/5 hover:border-primary-container/30 transition-all cursor-pointer">
+<div class="flex justify-between items-start mb-6">
+<span class="bg-primary-container/10 text-primary-container px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Premium</span>
+<span class="material-symbols-outlined text-on-surface-variant">more_vert</span>
+</div>
+<h4 class="text-xl font-bold mb-1">Plano Pro</h4>
+<p class="text-3xl font-black text-primary-container mb-6">R$ 199<span class="text-sm font-medium text-on-surface-variant">/mês</span></p>
+<div class="space-y-3">
+<div class="flex justify-between text-sm">
+<span class="text-on-surface-variant">Membros</span>
+<span class="font-bold">412</span>
+</div>
+<div class="w-full bg-surface-container-highest h-1.5 rounded-full overflow-hidden">
+<div class="bg-primary-container h-full w-[65%]"></div>
+</div>
+<div class="flex justify-between text-sm pt-2">
+<span class="text-on-surface-variant">Receita Mensal</span>
+<span class="font-bold text-primary-container">R$ 81.988</span>
+</div>
+</div>
+</div>
+<!-- Plan Classic -->
+<div class="bg-surface-container-low p-6 rounded-2xl border border-white/5 hover:border-primary-container/30 transition-all cursor-pointer">
+<div class="flex justify-between items-start mb-6">
+<span class="bg-on-surface-variant/10 text-on-surface-variant px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Standard</span>
+<span class="material-symbols-outlined text-on-surface-variant">more_vert</span>
+</div>
+<h4 class="text-xl font-bold mb-1">Plano Classic</h4>
+<p class="text-3xl font-black text-on-surface mb-6">R$ 89<span class="text-sm font-medium text-on-surface-variant">/mês</span></p>
+<div class="space-y-3">
+<div class="flex justify-between text-sm">
+<span class="text-on-surface-variant">Membros</span>
+<span class="font-bold">685</span>
+</div>
+<div class="w-full bg-surface-container-highest h-1.5 rounded-full overflow-hidden">
+<div class="bg-on-surface-variant h-full w-[85%]"></div>
+</div>
+<div class="flex justify-between text-sm pt-2">
+<span class="text-on-surface-variant">Receita Mensal</span>
+<span class="font-bold">R$ 60.965</span>
+</div>
+</div>
+</div>
+<!-- Combo Barba -->
+<div class="bg-surface-container-low p-6 rounded-2xl border border-white/5 hover:border-primary-container/30 transition-all cursor-pointer">
+<div class="flex justify-between items-start mb-6">
+<span class="bg-tertiary-container/10 text-tertiary-dim px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Popular</span>
+<span class="material-symbols-outlined text-on-surface-variant">more_vert</span>
+</div>
+<h4 class="text-xl font-bold mb-1">Combo Barba</h4>
+<p class="text-3xl font-black text-on-surface mb-6">R$ 145<span class="text-sm font-medium text-on-surface-variant">/mês</span></p>
+<div class="space-y-3">
+<div class="flex justify-between text-sm">
+<span class="text-on-surface-variant">Membros</span>
+<span class="font-bold">151</span>
+</div>
+<div class="w-full bg-surface-container-highest h-1.5 rounded-full overflow-hidden">
+<div class="bg-tertiary-dim h-full w-[30%]"></div>
+</div>
+<div class="flex justify-between text-sm pt-2">
+<span class="text-on-surface-variant">Receita Mensal</span>
+<span class="font-bold">R$ 21.895</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 3 & 4: Subscriber Management + Filters -->
+<section class="space-y-6">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+<h2 class="text-2xl font-black text-on-surface tracking-tight">Gestão de Assinantes</h2>
+<div class="flex flex-wrap gap-2">
+<button class="px-4 py-2 rounded-full text-xs font-bold bg-primary-container text-on-primary-container">Todos</button>
+<button class="px-4 py-2 rounded-full text-xs font-bold bg-surface-container text-on-surface-variant hover:text-on-surface transition-colors">Ativos</button>
+<button class="px-4 py-2 rounded-full text-xs font-bold bg-surface-container text-on-surface-variant hover:text-on-surface transition-colors">Atrasados</button>
+<button class="px-4 py-2 rounded-full text-xs font-bold bg-surface-container text-on-surface-variant hover:text-on-surface transition-colors">Cancelados</button>
+</div>
+</div>
+<div class="bg-surface-container-low rounded-2xl overflow-hidden border border-white/5">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-high/50 text-on-surface-variant text-[10px] uppercase tracking-widest font-black">
+<th class="px-6 py-4">Cliente</th>
+<th class="px-6 py-4">Plano</th>
+<th class="px-6 py-4">Status</th>
+<th class="px-6 py-4">Último Pagamento</th>
+<th class="px-6 py-4 text-right">Ações</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-white/5">
+<!-- Row 1 -->
+<tr class="hover:bg-white/[0.02] transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="h-10 w-10 rounded-full bg-surface-bright overflow-hidden border border-white/10">
+<img class="h-full w-full object-cover" data-alt="close-up portrait of a young man with a neatly trimmed beard and stylish modern haircut in a dramatic dark studio setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCAFHF9TBF4fBKyqjrdBg1wW1tyD193Rx42klfNnUpk4_HxDtvU9o3mKscnWIuIYhH3AbdwpVCKb3sWrgUcxOxC-D2vxWP25qxmQ-8Sq8qwpupm7D2jV0ZfVdtoLut9E9yts0vz3I7Etx-0A3BnmclsoSb6lU5bb8mbRTf3flxKiEi431W54denjiRS9_Vi71NOKbiZpMTLGRRsbm_XJJR-tUSjoYA-yy9zAN6IOxCbgWI7pLjwETrgixS1h_OmBsdBEIKSRvK8x1U"/>
+</div>
+<div>
+<p class="font-bold text-sm">Ricardo Mendes</p>
+<p class="text-xs text-on-surface-variant">ricardo.m@email.com</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="text-sm font-medium">Plano Pro</span>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-primary-container/10 text-primary-container">
+                                            Ativo
+                                        </span>
+</td>
+<td class="px-6 py-4 text-sm font-medium text-on-surface-variant">
+                                        12 Out, 2023
+                                    </td>
+<td class="px-6 py-4 text-right">
+<div class="flex justify-end gap-2">
+<button class="p-2 rounded-lg hover:bg-surface-bright text-on-surface-variant transition-all">
+<span class="material-symbols-outlined text-lg">history</span>
+</button>
+<button class="p-2 rounded-lg hover:bg-surface-bright text-on-surface-variant transition-all">
+<span class="material-symbols-outlined text-lg">edit</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 2 - Expandable Detail Context -->
+<tr class="bg-surface-container/30">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="h-10 w-10 rounded-full bg-surface-bright overflow-hidden border border-white/10">
+<img class="h-full w-full object-cover" data-alt="handsome man with sharp jawline and well-defined stubble looking directly at camera with professional soft lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuASvzl3szuHx0vmHYNJ8Njx0o08qVYhBFaHAP_93EnDAmguNMgYOcixcWxMrj5zcWDtWUu8EKHN1MhXL5-QvyFNvteem6xCZTCIWIQTIuweip4VGScWqLAeDKXRiiMjTWW8ra-LYgQDiOWCJ65wyYQeUvsOp2fHYjIUhn6N-FIkkQfG1w9goMiTW0Jj8iyvhwrZAvgeuXXvhDnLveQ4kiNJ-zq90oFFl0tLjbgz7i7dLeF9UQ7nNC-8eOdzdbFpB6G-K42vXXUyuPU"/>
+</div>
+<div>
+<p class="font-bold text-sm">Gustavo Lima</p>
+<p class="text-xs text-on-surface-variant">g.lima@email.com</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="text-sm font-medium">Plano Classic</span>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-error/10 text-error">
+                                            Atrasado
+                                        </span>
+</td>
+<td class="px-6 py-4 text-sm font-medium text-on-surface-variant">
+                                        05 Set, 2023
+                                    </td>
+<td class="px-6 py-4 text-right">
+<div class="flex justify-end gap-2">
+<button class="p-2 rounded-lg bg-primary-container/10 text-primary-container transition-all">
+<span class="material-symbols-outlined text-lg">expand_less</span>
+</button>
+<button class="p-2 rounded-lg hover:bg-surface-bright text-on-surface-variant transition-all">
+<span class="material-symbols-outlined text-lg">edit</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Expanded Content -->
+<tr class="bg-surface-container/50">
+<td class="px-8 py-6" colspan="5">
+<div class="space-y-4">
+<h5 class="text-xs font-black uppercase tracking-widest text-on-surface-variant">Histórico de Pagamentos</h5>
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+<div class="bg-surface-container p-3 rounded-xl border border-white/5 flex items-center justify-between">
+<div>
+<p class="text-[10px] text-on-surface-variant uppercase font-bold">Setembro 2023</p>
+<p class="text-sm font-bold text-error">R$ 89,00 Pendente</p>
+</div>
+<span class="material-symbols-outlined text-error text-sm">error</span>
+</div>
+<div class="bg-surface-container p-3 rounded-xl border border-white/5 flex items-center justify-between">
+<div>
+<p class="text-[10px] text-on-surface-variant uppercase font-bold">Agosto 2023</p>
+<p class="text-sm font-bold text-primary-container">R$ 89,00 Pago</p>
+</div>
+<span class="material-symbols-outlined text-primary-container text-sm">check_circle</span>
+</div>
+<div class="bg-surface-container p-3 rounded-xl border border-white/5 flex items-center justify-between opacity-50">
+<div>
+<p class="text-[10px] text-on-surface-variant uppercase font-bold">Julho 2023</p>
+<p class="text-sm font-bold">R$ 89,00 Pago</p>
+</div>
+<span class="material-symbols-outlined text-sm">check_circle</span>
+</div>
+<div class="flex items-center justify-center p-3 rounded-xl border border-dashed border-white/10 hover:border-white/20 transition-all cursor-pointer">
+<p class="text-xs font-bold text-on-surface-variant">Ver histórico completo</p>
+</div>
+</div>
+</div>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-white/[0.02] transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="h-10 w-10 rounded-full bg-surface-bright overflow-hidden border border-white/10">
+<img class="h-full w-full object-cover" data-alt="close-up portrait of a man with elegant short hair and groomed facial hair in a minimalist dark environment with soft accent lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzki7Hi4u95yftP_YJq9ELjhM9jX7Ho5sh3oKqWGL4MeLB2mAmQi_R7JNhYpBKmY-y8vwJyDKiMkUOEQXQKRHomuFl2EFawe0JOz7go44wVRp1C2cA4hnuj-D6RUaRbg8MOpDu_nSYfLVdaihRI5kzszz-_jfIIHBDDVj-kI3Au95Py8v4wpHFi58P2CJuY7gAyw425_xpKQxUvE_GGL7huon1UONxDKEI9N3nI0BMdC8OPYAaUMEm0cWvI-zOebFxPyF5tV0SB90"/>
+</div>
+<div>
+<p class="font-bold text-sm">Marcos Silva</p>
+<p class="text-xs text-on-surface-variant">marcos.silva@email.com</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="text-sm font-medium">Combo Barba</span>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-surface-container-highest text-on-surface-variant">
+                                            Cancelado
+                                        </span>
+</td>
+<td class="px-6 py-4 text-sm font-medium text-on-surface-variant">
+                                        15 Ago, 2023
+                                    </td>
+<td class="px-6 py-4 text-right">
+<div class="flex justify-end gap-2">
+<button class="p-2 rounded-lg hover:bg-surface-bright text-on-surface-variant transition-all">
+<span class="material-symbols-outlined text-lg">history</span>
+</button>
+<button class="p-2 rounded-lg hover:bg-surface-bright text-on-surface-variant transition-all">
+<span class="material-symbols-outlined text-lg">edit</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Table Pagination -->
+<div class="px-6 py-4 flex items-center justify-between bg-surface-container-high/20 border-t border-white/5">
+<p class="text-xs text-on-surface-variant font-medium">Exibindo 10 de 1,248 assinantes</p>
+<div class="flex gap-1">
+<button class="p-1.5 rounded-lg bg-surface-container hover:bg-surface-bright text-on-surface transition-all">
+<span class="material-symbols-outlined text-lg">chevron_left</span>
+</button>
+<button class="px-3 py-1.5 rounded-lg bg-primary-container text-on-primary-container text-xs font-black">1</button>
+<button class="px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-bright text-on-surface text-xs font-bold transition-all">2</button>
+<button class="px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-bright text-on-surface text-xs font-bold transition-all">3</button>
+<button class="p-1.5 rounded-lg bg-surface-container hover:bg-surface-bright text-on-surface transition-all">
+<span class="material-symbols-outlined text-lg">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- FAB Overlay (Contextual) -->
+<button class="fixed bottom-8 right-8 h-14 w-14 bg-primary-container text-on-primary-container rounded-full shadow-[0_8px_32px_rgba(197,254,0,0.3)] flex items-center justify-center scale-100 hover:scale-110 active:scale-95 transition-all z-50">
+<span class="material-symbols-outlined text-2xl font-bold">add</span>
+</button>
+</body></html>

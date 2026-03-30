@@ -76,6 +76,7 @@ const clienteSchema = z.object({
   isBlocked: z.boolean(),
   internalNotes: z.string(),
   observations: z.string(),
+  planoId: z.string().optional(),
 })
 
 type ClienteFormValues = z.infer<typeof clienteSchema>
@@ -119,6 +120,7 @@ export function ClienteSheet({
       number: "",
       internalNotes: "",
       observations: "",
+      planoId: "",
     },
   })
 
@@ -146,6 +148,7 @@ export function ClienteSheet({
           number: cliente.number || "",
           internalNotes: cliente.internalNotes || "",
           observations: cliente.observations || "",
+          planoId: cliente.assinaturas?.[0]?.plano?.id || "",
         })
       } else {
         form.reset({
@@ -168,6 +171,7 @@ export function ClienteSheet({
           number: "",
           internalNotes: "",
           observations: "",
+          planoId: "",
         })
       }
     }
@@ -311,6 +315,32 @@ export function ClienteSheet({
                         )}
                       />
                     </div>
+
+                    <FormField
+                      control={form.control}
+                      name="planoId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-bold text-muted-foreground underline decoration-primary/30 underline-offset-4">Plano de Assinatura (Opcional)</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger className="bg-background/50 border-border rounded-xl h-12 shadow-sm border-primary/20">
+                                <SelectValue placeholder="Selecione um plano para este cliente" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent className="bg-card border-border shadow-2xl rounded-2xl">
+                              <SelectItem value="none" className="text-muted-foreground italic">Nenhum / Sem Assinatura</SelectItem>
+                              {planos.map((plano) => (
+                                <SelectItem key={plano.id} value={plano.id} className="font-semibold">
+                                  {plano.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
                 </TabsContent>
 

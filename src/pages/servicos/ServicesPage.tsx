@@ -44,7 +44,8 @@ export default function ServicesPage() {
       ])
       setServices(servicesData)
       setBarbers(barbersData)
-    } catch {
+    } catch (error) {
+      console.error("Erro ao carregar serviços:", error)
       toast.error("Erro ao carregar serviços")
     } finally {
       setIsLoading(false)

@@ -22,7 +22,7 @@ api.interceptors.response.use(
     const message = error.response?.data?.message || "Erro ao processar solicitação.";
     const status = error.response?.status;
 
-    if (status === 401) {
+    if (status === 401 && window.location.pathname !== '/login') {
       // Token expirado ou inválido - Redirecionar para login
       localStorage.removeItem("@SeuCorte:token");
       localStorage.removeItem("@SeuCorte:user");

@@ -16,6 +16,7 @@ import {
   Award,
   ChevronRight,
   ShieldAlert,
+  ChevronLeft,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -104,7 +105,7 @@ export default function ClientesPage() {
           page: currentPage, 
           limit: itemsPerPage 
         }),
-        planoService.getPlans(),
+        planoService.getPlans(unidadeId),
         clienteService.getStats(unidadeId)
       ])
       setClientes(clientesRes.data)
@@ -253,8 +254,8 @@ export default function ClientesPage() {
                 </SelectTrigger>
                 <SelectContent className="rounded-xl border-border bg-card/95 backdrop-blur-md">
                   <SelectItem value="all" className="text-xs font-bold">Todos Tipos</SelectItem>
-                  <SelectItem value="customer" className="text-xs font-bold">Cliente Avulso</SelectItem>
-                  <SelectItem value="pro" className="text-xs font-bold">Cliente PRO</SelectItem>
+                  <SelectItem value="customer" className="text-xs font-bold">Clientes</SelectItem>
+                  <SelectItem value="pro" className="text-xs font-bold">Assinantes</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -281,11 +282,11 @@ export default function ClientesPage() {
               <TableHeader className="bg-muted/40">
                 <TableRow className="border-border">
                   <TableHead className="w-[300px] text-[10px] font-black uppercase tracking-widest py-5 px-8">Cliente</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Tipo</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Plano Ativo</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Última Visita</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Status</TableHead>
-                  <TableHead className="text-right py-5 px-8 text-[10px] font-black uppercase tracking-widest">Ações</TableHead>
+                  <TableHead className="w-[120px] text-[10px] font-black uppercase tracking-widest text-center">Tipo</TableHead>
+                  <TableHead className="w-[180px] text-[10px] font-black uppercase tracking-widest">Plano Ativo</TableHead>
+                  <TableHead className="w-[120px] text-[10px] font-black uppercase tracking-widest">Última Visita</TableHead>
+                  <TableHead className="w-[100px] text-[10px] font-black uppercase tracking-widest">Status</TableHead>
+                  <TableHead className="text-right py-5 px-8 text-[10px] font-black uppercase tracking-widest w-[120px]">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -308,11 +309,11 @@ export default function ClientesPage() {
                         <div className="flex items-center gap-3">
                           <div className={cn(
                             "size-10 rounded-xl flex items-center justify-center transition-colors relative",
-                            cliente.type === 'pro' 
+                            (cliente.type === 'pro' || (cliente.assinaturas && cliente.assinaturas.length > 0))
                               ? "bg-primary/10 text-primary" 
                               : "bg-muted text-muted-foreground group-hover:bg-accent group-hover:text-foreground"
                           )}>
-                            {cliente.type === 'pro' ? <Star className="size-5 fill-primary" /> : <User className="size-5" />}
+                            {(cliente.type === 'pro' || (cliente.assinaturas && cliente.assinaturas.length > 0)) ? <Star className="size-5 fill-primary" /> : <User className="size-5" />}
                             {cliente.isVip && (
                               <div className="absolute -top-1 -right-1 bg-amber-500 border-2 border-background size-4 rounded-full flex items-center justify-center">
                                 <Award className="size-2 text-white" />
@@ -328,20 +329,20 @@ export default function ClientesPage() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-center">
                         <Badge variant="outline" className={cn(
-                          "rounded-lg font-bold",
-                          cliente.type === 'pro' 
+                          "rounded-lg font-bold mx-auto",
+                          (cliente.type === 'pro' || (cliente.assinaturas && cliente.assinaturas.length > 0))
                             ? "bg-primary/10 text-primary border-primary/20" 
                             : "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-transparent"
                         )}>
-                          {cliente.type === 'pro' ? 'Cliente PRO' : 'Avulso'}
+                          {(cliente.type === 'pro' || (cliente.assinaturas && cliente.assinaturas.length > 0)) ? 'Assinante' : 'Cliente'}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         <p className={cn(
                           "text-xs font-bold",
-                          cliente.type === 'pro' ? "text-foreground" : "text-muted-foreground font-medium"
+                          (cliente.type === 'pro' || (cliente.assinaturas && cliente.assinaturas.length > 0)) ? "text-foreground" : "text-muted-foreground font-medium"
                         )}>
                           {getPlanName(cliente)}
                         </p>
@@ -365,16 +366,8 @@ export default function ClientesPage() {
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell className="text-right px-8">
-                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="size-8 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800"
-                            onClick={() => handleEditClick(cliente)}
-                          >
-                            <Edit2 className="size-3.5 text-slate-500" />
-                          </Button>
+                      <TableCell className="text-right px-8 w-[120px]">
+                        <div className="flex items-center justify-end gap-1">
                           <Button 
                             variant="ghost" 
                             size="icon" 
@@ -382,6 +375,14 @@ export default function ClientesPage() {
                             onClick={() => navigate(`/clientes/${cliente.id}/perfil`)}
                           >
                             <ChevronRight className="size-3.5 text-slate-500" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="size-8 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800"
+                            onClick={() => handleEditClick(cliente)}
+                          >
+                            <Edit2 className="size-3.5 text-slate-500" />
                           </Button>
                           <Button 
                             variant="ghost" 
@@ -435,17 +436,17 @@ export default function ClientesPage() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-3 bg-muted/20 p-3 rounded-2xl border border-border/5">
-                    <div>
-                      <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Tipo</p>
-                      <Badge variant="outline" className={cn(
-                        "rounded-lg font-bold text-[9px] px-1.5 py-0",
-                        cliente.type === 'pro' 
-                          ? "bg-primary/10 text-primary border-primary/20" 
-                          : "bg-slate-100 text-slate-600 border-transparent dark:bg-slate-800"
-                      )}>
-                        {cliente.type === 'pro' ? 'PRO' : 'Avulso'}
-                      </Badge>
-                    </div>
+                      <div>
+                        <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Tipo</p>
+                        <Badge variant="outline" className={cn(
+                          "rounded-lg font-bold text-[9px] px-1.5 py-0",
+                          (cliente.type === 'pro' || (cliente.assinaturas && cliente.assinaturas.length > 0))
+                            ? "bg-primary/10 text-primary border-primary/20" 
+                            : "bg-slate-100 text-slate-600 border-transparent dark:bg-slate-800"
+                        )}>
+                          {(cliente.type === 'pro' || (cliente.assinaturas && cliente.assinaturas.length > 0)) ? 'Assinante' : 'Cliente'}
+                        </Badge>
+                      </div>
                     <div>
                       <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Plano Ativo</p>
                       <p className="text-[11px] font-bold truncate">{getPlanName(cliente)}</p>
@@ -484,7 +485,7 @@ export default function ClientesPage() {
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
               >
-                <MoreHorizontal className="size-4 rotate-90" />
+                <ChevronLeft className="size-4" />
               </Button>
               
               <div className="flex items-center gap-1 overflow-x-auto max-w-[150px] sm:max-w-none no-scrollbar">
@@ -511,7 +512,7 @@ export default function ClientesPage() {
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages || totalPages === 0}
               >
-                <MoreHorizontal className="size-4 -rotate-90" />
+                <ChevronRight className="size-4" />
               </Button>
             </div>
           </div>

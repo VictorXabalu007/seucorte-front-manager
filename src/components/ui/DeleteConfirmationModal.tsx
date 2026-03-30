@@ -16,6 +16,7 @@ interface DeleteConfirmationModalProps {
   title: string
   description?: string
   itemName?: string
+  confirmLabel?: string
   isLoading?: boolean
 }
 
@@ -26,6 +27,7 @@ export function DeleteConfirmationModal({
   title,
   description,
   itemName,
+  confirmLabel,
   isLoading = false,
 }: DeleteConfirmationModalProps) {
   return (
@@ -61,7 +63,7 @@ export function DeleteConfirmationModal({
             className="bg-destructive hover:bg-destructive/90 text-destructive-foreground font-bold rounded-xl shadow-lg shadow-destructive/20"
             disabled={isLoading}
           >
-            {isLoading ? "Excluindo..." : "Sim, excluir"}
+            {isLoading ? (confirmLabel ? "Processando..." : "Excluindo...") : (confirmLabel || "Sim, excluir")}
           </Button>
         </DialogFooter>
       </DialogContent>

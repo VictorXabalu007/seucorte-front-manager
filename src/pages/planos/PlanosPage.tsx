@@ -1,358 +1,471 @@
-import { useState, useEffect } from "react"
+import React, { useState, useEffect, useCallback } from "react"
 import { cn } from "@/lib/utils"
 import { AdminLayout } from "@/components/layout/AdminLayout"
 import { 
-  MoreHorizontal, 
-  Edit2, 
-  Trash2, 
   Plus, 
   CreditCard,
-  CheckCircle2,
   Users,
   TrendingUp,
-  User,
-  Star,
   Search,
-  X
+  CheckCircle2,
+  AlertCircle,
+  ChevronDown,
+  ChevronUp,
+  History,
+  MoreVertical,
+  ChevronLeft,
+  ChevronRight,
+  MinusCircle,
+  Edit2,
+  Trash2
 } from "lucide-react"
+import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { DeleteConfirmationModal } from "@/components/ui/DeleteConfirmationModal"
-import { PlanoSheet } from "./components/PlanoSheet"
-import { 
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet"
-import { Input } from "@/components/ui/input"
 import { planoService } from "./services/plano.service"
+import { servicesService } from "../servicos/services/services.service"
 import { clienteService } from "../clientes/services/cliente.service"
 import type { Plano } from "./types/plano"
+import type { Service } from "../servicos/types"
 import type { Cliente } from "../clientes/types/cliente"
 import { useLoading } from "@/components/loading-provider"
 import { getActiveUnidadeId } from "@/lib/auth"
 import { toast } from "sonner"
+import { format } from "date-fns"
+import { ptBR } from "date-fns/locale"
+
+const safeFormat = (date: any, formatStr: string) => {
+  try {
+    if (!date) return "N/A"
+    const d = new Date(date)
+    if (isNaN(d.getTime())) return "N/A"
+    return format(d, formatStr, { locale: ptBR })
+  } catch (e) {
+    return "N/A"
+  }
+}
 
 export default function PlanosPage() {
   const { setIsLoading } = useLoading()
   const unidadeId = getActiveUnidadeId()
-  const [planos, setPlanos] = useState<Plano[]>([])
-  const [clientes, setClientes] = useState<Cliente[]>([])
-  const [isInternalLoading, setIsInternalLoading] = useState(true)
-  const [isSheetOpen, setIsSheetOpen] = useState(false)
-  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null)
-  const [memberSearch, setMemberSearch] = useState("")
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
-  const [planoToDelete, setPlanoToDelete] = useState<Plano | null>(null)
-  const [isPlanoSheetOpen, setIsPlanoSheetOpen] = useState(false)
-  const [planoToEdit, setPlanoToEdit] = useState<Plano | null>(null)
+  const navigate = useNavigate()
 
-  useEffect(() => {
-    const loadData = async () => {
-      if (!unidadeId) return
+  const [stats, setStats] = useState<any>(null)
+  const [assinantes, setAssinantes] = useState<any[]>([])
+  const [totalAssinantes, setTotalAssinantes] = useState(0)
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [statusFilter, setStatusFilter] = useState<string>("Todos")
 
-      setIsLoading(true)
-      setIsInternalLoading(true)
-      try {
-        const [planosData, clientesData] = await Promise.all([
-          planoService.getPlans(unidadeId),
-          clienteService.getClientes({ unidadeId })
-        ])
-        setPlanos(planosData)
-        setClientes(clientesData.data || [])
-      } catch (error) {
-        console.error("Failed to load planos data:", error)
-        toast.error("Erro ao carregar dados dos planos")
-      } finally {
-        setIsLoading(false)
-        setIsInternalLoading(false)
-      }
+  const [servicosDisponiveis, setServicosDisponiveis] = useState<Service[]>([])
+  const [clientesDisponiveis, setClientesDisponiveis] = useState<Cliente[]>([])
+  
+  const loadDashboard = useCallback(async () => {
+    if (!unidadeId) return
+    try {
+      const data = await planoService.getDashboardStats(unidadeId)
+      setStats(data)
+    } catch (error) {
+      console.error(error)
+      toast.error("Erro ao carregar os dados do dashboard")
     }
-
-    loadData()
   }, [unidadeId])
 
-  const getClientesInPlan = (planId: string) => {
-    return clientes.filter((c: Cliente) => 
-      c.assinaturas?.some(a => a.plano.id === planId && a.isActive)
-    )
-  }
-
-  const selectedPlan = planos.find((p: Plano) => p.id === selectedPlanId)
-  const filteredMembers = getClientesInPlan(selectedPlanId || "").filter((c: Cliente) => 
-    c.name.toLowerCase().includes(memberSearch.toLowerCase()) ||
-    c.email.toLowerCase().includes(memberSearch.toLowerCase())
-  )
-
-  const handleDeleteClick = (plano: Plano) => {
-    setPlanoToDelete(plano)
-    setIsDeleteModalOpen(true)
-  }
-
-  const handleConfirmDelete = async () => {
-    if (!planoToDelete) return
-    
+  const loadAssinantes = useCallback(async () => {
+    if (!unidadeId) return
+    setIsLoading(true)
     try {
-      await planoService.deletePlan(planoToDelete.id)
-      setPlanos(prev => prev.filter(p => p.id !== planoToDelete.id))
-      toast.success("Plano excluído com sucesso")
+      const params: any = {
+        unidadeId,
+        page,
+        limit: 10,
+        status: statusFilter === "Todos" ? undefined : statusFilter
+      }
+      const data = await planoService.getAssinantes(params)
+      setAssinantes(data.data)
+      setTotalPages(data.pages)
+      setTotalAssinantes(data.total)
     } catch (error) {
-      console.error("Failed to delete plano:", error)
-      toast.error("Erro ao excluir plano")
+      console.error(error)
+      toast.error("Erro ao carregar assinantes")
     } finally {
-      setIsDeleteModalOpen(false)
-      setPlanoToDelete(null)
+      setIsLoading(false)
+    }
+  }, [unidadeId, page, statusFilter, setIsLoading])
+
+  const loadResources = useCallback(async () => {
+    if (!unidadeId) return
+    try {
+      const [servicosData, clientesData] = await Promise.all([
+        servicesService.getServices(unidadeId),
+        clienteService.getClientes({ unidadeId })
+      ])
+      setServicosDisponiveis(servicosData || [])
+      setClientesDisponiveis(clientesData.data || [])
+    } catch (error) {
+       console.error(error)
+    }
+  }, [unidadeId])
+
+  useEffect(() => {
+    loadDashboard()
+    loadResources()
+  }, [loadDashboard, loadResources])
+
+  useEffect(() => {
+    loadAssinantes()
+  }, [loadAssinantes])
+
+  const formatMoney = (val: number) => {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
+  }
+
+  const handleDeletePlano = async (id: string) => {
+    if (!confirm("Tem certeza que deseja inativar/remover este plano? O plano não será mais oferecido e contratos ativos podem ser afetados.")) return;
+    try {
+      setIsLoading(true)
+      await planoService.deletePlan(id)
+      toast.success("Plano atualizado com sucesso!")
+      loadDashboard()
+    } catch(err) {
+      toast.error("Falha ao remover plano.")
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  const handleEditClick = (plano: Plano) => {
-    setPlanoToEdit(plano)
-    setIsPlanoSheetOpen(true)
-  }
-
-  const handleNewClick = () => {
-    setPlanoToEdit(null)
-    setIsPlanoSheetOpen(true)
-  }
-
-  const handleSavePlano = async (data: any) => {
+  const handlePayFatura = async (faturaId: string) => {
     try {
-      if (planoToEdit) {
-        // Edit mode
-        const updated = await planoService.updatePlan(planoToEdit.id, data)
-        setPlanos(prev => prev.map(p => p.id === planoToEdit.id ? updated : p))
-        toast.success("Plano atualizado com sucesso")
-      } else {
-        // Create mode
-        const created = await planoService.createPlan({ ...data, unidadeId: unidadeId! })
-        setPlanos(prev => [created, ...prev])
-        toast.success("Plano criado com sucesso")
-      }
-      setIsPlanoSheetOpen(false)
-      setPlanoToEdit(null)
-    } catch (error) {
-      console.error("Failed to save plano:", error)
-      toast.error("Erro ao salvar plano")
+      setIsLoading(true)
+      await planoService.payFatura(faturaId)
+      toast.success("Fatura marcada como PAGA com sucesso!")
+      loadAssinantes()
+      loadDashboard()
+    } catch(err) {
+      toast.error("Falha ao registrar pagamento")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleGenerateFatura = async (assinaturaId: string) => {
+    try {
+      setIsLoading(true)
+      await planoService.generateFatura(assinaturaId)
+      toast.success("Nova fatura gerada com sucesso!")
+      loadAssinantes()
+    } catch(err) {
+      toast.error("Falha ao gerar nova fatura")
+    } finally {
+      setIsLoading(false)
     }
   }
 
   return (
     <AdminLayout>
-      <div className="space-y-6 sm:space-y-8 pb-10">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="w-full sm:w-auto">
-            <h1 className="text-3xl sm:text-4xl font-black tracking-tighter bg-gradient-to-tr from-foreground to-foreground/60 bg-clip-text text-transparent">
-              Planos de Assinatura
-            </h1>
-            <p className="text-muted-foreground font-medium text-xs sm:text-sm mt-1">
-              Fidelize seus clientes com recorrência.
-            </p>
-          </div>
-          
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <Button 
-              size="sm" 
-              className="flex-1 sm:flex-none h-11 sm:h-9 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl px-4 font-bold transition-all shadow-lg shadow-primary/20 gap-2 border-0"
-              onClick={handleNewClick}
-            >
-              <Plus className="size-4 stroke-[3px]" />
-              <span className="hidden xs:inline">Criar Novo Plano</span>
-              <span className="xs:hidden">Novo Plano</span>
-            </Button>
+      <div className="space-y-10 pb-12 w-full max-w-7xl mx-auto">
+        
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-black tracking-tight text-foreground">Gestão de Assinaturas</h1>
+            <p className="text-muted-foreground text-sm font-medium mt-1">Acompanhe seu faturamento recorrente e a perfomance dos planos</p>
           </div>
         </div>
 
-        {/* Planos Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {isInternalLoading ? (
-            Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="h-80 sm:h-96 rounded-3xl border-2 border-dashed border-border flex items-center justify-center animate-pulse bg-muted/20" />
-            ))
-          ) : planos.length > 0 ? (
-            planos.map((plano: Plano) => {
-              const planClientes = getClientesInPlan(plano.id)
+        {/* Section 1: Financial KPIs */}
+        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+          <div className="bg-card/40 border border-border/60 p-6 rounded-2xl relative overflow-hidden backdrop-blur-sm group hover:border-primary/30 transition-all">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <CreditCard className="size-16 text-primary" />
+            </div>
+            <p className="text-muted-foreground text-sm font-medium mb-1">Faturamento Bruto (Mês)</p>
+            <h3 className="text-3xl sm:text-4xl font-black text-foreground tracking-tight">
+              {formatMoney(stats?.faturamentoBruto || 0)}
+            </h3>
+            <div className="mt-4 flex items-center gap-2 text-primary text-xs font-bold">
+              <TrendingUp className="size-4" />
+              <span>Recebido em faturas</span>
+            </div>
+          </div>
+
+          <div className="bg-card/40 border border-border/60 p-6 rounded-2xl backdrop-blur-sm hover:border-primary/30 transition-all">
+            <p className="text-muted-foreground text-sm font-medium mb-1">Assinantes Ativos</p>
+            <h3 className="text-3xl sm:text-4xl font-black text-foreground tracking-tight">
+              {stats?.activeSubscribers || 0}
+            </h3>
+            <div className="mt-4 flex items-center gap-2 text-primary text-xs font-bold">
+              <Users className="size-4" />
+              <span>Nos planos ativos</span>
+            </div>
+          </div>
+
+          <div className="bg-card/40 border-l-4 border-l-destructive border border-border/60 p-6 rounded-2xl backdrop-blur-sm group hover:border-destructive/40 transition-all">
+            <p className="text-muted-foreground text-sm font-medium mb-1">Inadimplência</p>
+            <h3 className="text-3xl sm:text-4xl font-black text-destructive tracking-tight">
+              {stats?.vencidas || 0} <span className="text-lg opacity-60 font-medium">faturas</span>
+            </h3>
+            <div className="mt-4 flex items-center gap-2 text-destructive text-xs font-bold">
+              <AlertCircle className="size-4" />
+              <span>{(stats?.defaultRate || 0).toFixed(1)}% do total ativo</span>
+            </div>
+          </div>
+
+          <div className="bg-card/40 border border-border/60 p-6 rounded-2xl backdrop-blur-sm group hover:border-foreground/20 transition-all">
+            <p className="text-muted-foreground text-sm font-medium mb-1">Cancelamentos (Mês)</p>
+            <h3 className="text-3xl sm:text-4xl font-black text-foreground tracking-tight">
+               {stats?.canceladosMes || 0} <span className="text-lg opacity-60 font-medium text-muted-foreground">assinantes</span>
+            </h3>
+            <div className="mt-4 flex items-center gap-2 text-muted-foreground text-xs font-bold">
+              <MinusCircle className="size-4" />
+              <span>{(stats?.churnRate || 0).toFixed(1)}% taxa de churn</span>
+            </div>
+          </div>
+        </section>
+
+        {/* Section 2: Plan Performance */}
+        <section className="space-y-6">
+          <div className="flex flex-col sm:flex-row justify-between sm:items-end gap-4">
+            <div>
+              <h2 className="text-lg md:text-xl font-black text-foreground tracking-tight">Performance por Plano</h2>
+              <p className="text-muted-foreground text-xs md:text-sm">Distribuição de receita e membros por modalidade</p>
+            </div>
+            <Button 
+              onClick={() => navigate("/planos/novo")}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-5 rounded-xl font-bold text-sm flex items-center gap-2 transition-all shadow-md"
+            >
+              <Plus className="size-5 stroke-[3px]" />
+              Novo Plano
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {stats?.planosPerformance?.map((plan: any) => {
+              const expected = plan.revenue || 0
+              const paid = plan.paidRevenue || 0
+              const percentage = expected > 0 ? Math.min(Math.round((paid / expected) * 100), 100) : 0
+              
               return (
-                <div key={plano.id} className="bg-card/40 rounded-3xl border border-border shadow-sm overflow-hidden backdrop-blur-sm flex flex-col group hover:border-primary/30 transition-all">
-                  <div className="p-5 sm:p-6 space-y-4 flex-1">
-                    <div className="flex justify-between items-start">
-                      <div className="size-10 sm:size-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all">
-                        <CreditCard className="size-5 sm:size-6" />
-                      </div>
-                      <Badge 
-                        variant="outline" 
-                        className={cn(
-                          "rounded-lg font-bold text-[10px] sm:text-xs",
-                          plano.isActive 
-                            ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-transparent"
-                            : "bg-slate-50 text-slate-600 border-slate-100 dark:bg-slate-500/10 dark:text-slate-400 dark:border-transparent"
-                        )}
-                      >
-                        {plano.isActive ? "Ativo" : "Pausado"}
-                      </Badge>
+                <div key={plan.id} className="bg-card/40 p-6 rounded-2xl border border-border/60 hover:border-primary/40 transition-all">
+                  <div className="flex justify-between items-start mb-6">
+                    <div className="flex gap-2">
+                      <span className="bg-emerald-500/10 text-emerald-500 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Ativo</span>
+                      <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
+                        <Users className="size-3" />
+                        {plan.memberCount || 0} Membros
+                      </span>
                     </div>
-                    
-                    <div>
-                      <h2 className="text-lg sm:text-xl font-black tracking-tight">{plano.name}</h2>
-                      <div className="flex items-baseline gap-1 mt-1">
-                        <span className="text-xl sm:text-2xl font-black">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(plano.price)}</span>
-                        <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">/mês</span>
-                      </div>
-                      <p className="text-xs sm:text-sm text-muted-foreground font-medium mt-3 leading-relaxed line-clamp-2">
-                        {plano.description}
-                      </p>
-                    </div>
-
-                    <div className="space-y-2 pt-2 sm:pt-4">
-                      {plano.features.slice(0, 3).map((feature: string, idx: number) => (
-                        <div key={idx} className="flex items-center gap-2.5">
-                          <CheckCircle2 className="size-3.5 sm:size-4 text-primary shrink-0" />
-                          <span className="text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 truncate">{feature}</span>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="pt-4 sm:pt-6 mt-auto border-t border-border/50">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Users className="size-3.5 sm:size-4 text-muted-foreground" />
-                          <span className="text-[10px] sm:text-xs font-bold text-foreground">
-                            {planClientes.length} {planClientes.length === 1 ? 'membro' : 'membros'}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <TrendingUp className="size-3 text-emerald-500" />
-                          <span className="text-[9px] font-black text-emerald-500 uppercase">+12%</span>
-                        </div>
-                      </div>
+                    <div className="flex items-center gap-1">
+                      <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => navigate(`/planos/${plan.id}/editar`)}>
+                         <Edit2 className="size-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => handleDeletePlano(plan.id)}>
+                         <Trash2 className="size-3.5" />
+                      </Button>
                     </div>
                   </div>
-
-                  <div className="p-3 sm:p-4 bg-muted/30 border-t border-border/50 flex items-center justify-between">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-8 sm:h-9 text-[10px] sm:text-xs font-bold text-slate-500 hover:text-foreground"
-                      onClick={() => {
-                        setSelectedPlanId(plano.id)
-                        setIsSheetOpen(true)
-                        setMemberSearch("")
-                      }}
-                    >
-                      Ver Membros
-                    </Button>
-                    <div className="flex items-center gap-0.5">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="size-8 rounded-lg"
-                        onClick={() => handleEditClick(plano)}
-                      >
-                        <Edit2 className="size-3.5" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="size-8 rounded-lg hover:text-destructive"
-                        onClick={() => handleDeleteClick(plano)}
-                      >
-                        <Trash2 className="size-3.5" />
-                      </Button>
+                  <h4 className="text-xl font-bold mb-1 truncate">{plan.name}</h4>
+                  <p className="text-3xl font-black text-primary mb-6">
+                    {formatMoney(plan.price)}
+                    <span className="text-sm font-medium text-muted-foreground">/mês</span>
+                  </p>
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Recebido no Mês vs Esperado</span>
+                      <span className="font-bold text-primary">{percentage}%</span>
+                    </div>
+                    <div className="w-full bg-muted h-1.5 rounded-full overflow-hidden">
+                      <div className="bg-primary h-full rounded-full transition-all duration-500" style={{ width: `${percentage}%` }}></div>
+                    </div>
+                    <div className="flex justify-between text-xs pt-1">
+                      <span className="font-bold text-foreground">{formatMoney(paid)} <span className="text-muted-foreground font-medium">pagos</span></span>
+                      <span className="text-muted-foreground font-medium">de {formatMoney(expected)}</span>
                     </div>
                   </div>
                 </div>
               )
-            })
-          ) : (
-            <div className="col-span-full py-20 flex flex-col items-center justify-center text-center space-y-6 bg-card/20 rounded-3xl border-2 border-dashed border-border/50 backdrop-blur-sm">
-              <div className="size-20 rounded-3xl bg-primary/10 flex items-center justify-center text-primary rotate-3 transform transition-transform hover:rotate-0">
-                <CreditCard className="size-10" />
+            })}
+            
+            {(!stats?.planosPerformance || stats.planosPerformance.length === 0) && (
+              <div className="col-span-full py-12 flex flex-col items-center justify-center text-center space-y-4 bg-card/20 rounded-2xl border-2 border-dashed border-border/50">
+                <p className="text-muted-foreground font-medium text-sm">Nenhum plano ativo encontrado.</p>
               </div>
-              <div className="space-y-2 max-w-sm px-4">
-                <h3 className="text-2xl font-black tracking-tight">Nenhum plano cadastrado</h3>
-                <p className="text-muted-foreground font-medium text-sm">
-                  Você ainda não criou nenhum plano de assinatura para seus clientes. Comece agora mesmo!
-                </p>
-              </div>
-              <Button 
-                onClick={handleNewClick}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl px-8 font-bold shadow-lg shadow-primary/20 gap-2 h-11"
-              >
-                <Plus className="size-5 stroke-[3px]" />
-                Criar Meu Primeiro Plano
-              </Button>
-            </div>
-          )}
-        </div>
-      </div>
+            )}
+          </div>
+        </section>
 
-      {/* Members Sheet */}
-      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent className="w-full sm:max-w-md rounded-l-2xl border-l border-border bg-card/95 backdrop-blur-md">
-          <SheetHeader className="pb-6 border-b border-border/50">
-            <SheetTitle className="text-2xl font-black tracking-tighter flex items-center gap-2">
-              <Users className="size-6 text-primary" />
-              Membros do Plano
-            </SheetTitle>
-            <SheetDescription className="font-medium">
-              {selectedPlan?.name} • {filteredMembers.length} clientes encontrados
-            </SheetDescription>
-          </SheetHeader>
-
-          <div className="pt-6 space-y-6">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-              <Input 
-                placeholder="Filtrar por nome ou e-mail..."
-                className="pl-10 h-10 bg-muted/50 border-transparent rounded-xl text-sm"
-                value={memberSearch}
-                onChange={(e) => setMemberSearch(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-3 max-h-[calc(100vh-250px)] overflow-y-auto pr-2 custom-scrollbar">
-              {filteredMembers.length === 0 ? (
-                <div className="py-12 text-center space-y-2">
-                  <div className="size-12 rounded-2xl bg-muted mx-auto flex items-center justify-center text-muted-foreground">
-                    <Search className="size-6" />
-                  </div>
-                  <p className="text-sm font-bold text-slate-500">Nenhum membro encontrado</p>
-                </div>
-              ) : filteredMembers.map((cliente: Cliente) => (
-                <div key={cliente.id} className="p-3 rounded-2xl bg-muted/30 border border-border/50 flex items-center gap-3 group hover:bg-muted/50 transition-all">
-                  <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                    <User className="size-5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold truncate tracking-tight">{cliente.name}</p>
-                    <p className="text-[11px] text-muted-foreground truncate">{cliente.email}</p>
-                  </div>
-                  <Button variant="ghost" size="icon" className="size-8 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Edit2 className="size-3.5" />
+        {/* Section 3: Subscriber Management */}
+        <section className="space-y-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <h2 className="text-lg md:text-xl font-black text-foreground tracking-tight">Gestão de Assinantes</h2>
+            <div className="flex flex-wrap gap-2">
+              {["Todos", "Pendentes", "Ativos", "Atrasados", "Cancelados"].map(fil => {
+                const mapAPIStatus: Record<string, string> = {
+                  "Todos": "Todos",
+                  "Pendentes": "Pendente",
+                  "Ativos": "Ativo",
+                  "Atrasados": "Atrasado",
+                  "Cancelados": "Cancelado"
+                };
+                const isActive = statusFilter === mapAPIStatus[fil];
+                return (
+                  <Button 
+                    key={fil}
+                    variant={isActive ? "default" : "secondary"}
+                    size="sm"
+                    onClick={() => {
+                        setStatusFilter(mapAPIStatus[fil])
+                        setPage(1)
+                    }}
+                    className={cn(
+                      "rounded-full text-xs font-bold px-5",
+                      isActive ? "bg-primary text-primary-foreground hover:bg-primary/90" : "hover:bg-muted-foreground/10"
+                    )}
+                  >
+                    {fil}
                   </Button>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
-        </SheetContent>
-      </Sheet>
 
-      <DeleteConfirmationModal 
-        isOpen={isDeleteModalOpen}
-        onOpenChange={setIsDeleteModalOpen}
-        onConfirm={handleConfirmDelete}
-        title="Excluir Plano"
-        description="Você tem certeza que deseja excluir este plano? Clientes vinculados a este plano perderão seus benefícios imediatamente."
-        itemName={planoToDelete?.name}
-      />
+          <div className="bg-card rounded-2xl overflow-hidden border border-border shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-muted/30 border-b border-border/50 text-xs font-bold text-muted-foreground uppercase tracking-wider hover:bg-muted/30">
+                    <th className="p-4 font-bold text-muted-foreground uppercase tracking-wider h-auto">Cliente</th>
+                    <th className="p-4 font-bold text-muted-foreground uppercase tracking-wider h-auto">Plano</th>
+                    <th className="p-4 font-bold text-muted-foreground uppercase tracking-wider h-auto">Status da Assinatura</th>
+                    <th className="p-4 font-bold text-muted-foreground uppercase tracking-wider h-auto">Última Fatura</th>
+                    <th className="p-4 font-bold text-muted-foreground uppercase tracking-wider h-auto text-right">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="text-sm divide-y divide-border/50">
+                      {assinantes.map((ass) => {
+                        const faturas = ass.faturas || []
+                        const ultimaFatura = faturas[0] // Assume it's ordered by desc
 
-      <PlanoSheet 
-        isOpen={isPlanoSheetOpen}
-        onOpenChange={setIsPlanoSheetOpen}
-        onSave={handleSavePlano}
-        plano={planoToEdit}
-      />
+                        return (
+                          <tr key={ass.id} className="hover:bg-muted/30 transition-colors group border-border/50">
+                            <td className="p-4">
+                            <div className="flex items-center gap-3">
+                              <div className="h-10 w-10 rounded-full bg-muted overflow-hidden border border-border flex shrink-0 items-center justify-center text-muted-foreground text-xs font-bold uppercase">
+                                {ass.cliente?.avatarUrl ? (
+                                  <img src={ass.cliente.avatarUrl} className="h-full w-full object-cover" alt="" />
+                                ) : (
+                                  ass.cliente?.name?.substring(0,2)
+                                )}
+                              </div>
+                              <div className="flex flex-col justify-center">
+                                <p className="font-bold text-sm text-foreground truncate leading-tight m-0">{ass.cliente?.name}</p>
+                                <p className="text-[11px] text-muted-foreground truncate leading-tight m-0">{ass.cliente?.email}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <span className="text-sm font-medium text-foreground">{ass.plano?.name}</span>
+                          </td>
+                          <td className="p-4">
+                            {ass.endDate ? (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-muted text-muted-foreground border border-border/50">
+                                Cancelado
+                              </span>
+                            ) : ass.isActive ? (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-500">
+                                Ativo
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-500">
+                                Aguardando Pag.
+                              </span>
+                            )}
+                          </td>
+                          <td className="p-4">
+                            {ass.endDate ? (
+                                <div className="flex flex-col">
+                                    <span className="text-xs font-black uppercase tracking-tighter text-muted-foreground/40">
+                                        Encerrado
+                                    </span>
+                                    <span className="text-[10px] font-bold text-muted-foreground/30">
+                                        Sem cobranças
+                                    </span>
+                                </div>
+                            ) : ultimaFatura ? (
+                                <div className="flex flex-col">
+                                    <span className={cn(
+                                        "text-xs font-bold",
+                                        ultimaFatura.status === 'PAGA' ? "text-emerald-500" :
+                                        ultimaFatura.status === 'VENCIDA' ? "text-destructive" : "text-amber-500"
+                                    )}>
+                                        {ultimaFatura.status === 'PAGA' ? 'Paga' : 
+                                         ultimaFatura.status === 'VENCIDA' ? 'Vencida' : 'Pendente'}
+                                    </span>
+                                    <span className="text-xs font-medium text-muted-foreground">
+                                        Venc. {safeFormat(ultimaFatura.dataVencimento, "dd/MM/yyyy")}
+                                    </span>
+                                </div>
+                            ) : (
+                                <span className="text-xs text-muted-foreground">-</span>
+                            )}
+                          </td>
+                          <td className="p-4 text-right">
+                            <div className="flex justify-end gap-1">
+                              <Button 
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => navigate(`/planos/assinante/${ass.id}/historico`)}
+                                className="transition-all font-bold text-xs text-muted-foreground hover:text-primary hover:bg-primary/5 rounded-xl gap-2"
+                              >
+                                <History className="size-4" />
+                                Histórico
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                        )
+                      })}
+
+                  {assinantes.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="py-16 text-center text-muted-foreground text-sm font-medium">
+                        Nenhum assinante encontrado com os filtros atuais.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            
+            {/* Paginação do Card */}
+            {totalAssinantes > 0 && (
+              <div className="bg-muted/10 border-t border-border/50 px-6 py-4 flex flex-col sm:flex-row items-center justify-center gap-4">
+                <button
+                  className="px-4 py-2 rounded-xl border border-border/60 bg-background text-sm font-bold text-muted-foreground hover:bg-muted hover:text-foreground transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                  disabled={page <= 1}
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                >
+                  Anterior
+                </button>
+                <div className="flex items-center gap-2">
+                   <div className="px-3 py-1 rounded-lg bg-primary/10 text-primary text-xs font-black uppercase tracking-widest border border-primary/20">
+                      Página {page}
+                   </div>
+                   <span className="text-[11px] font-bold text-muted-foreground/60 uppercase tracking-widest">
+                      · {totalAssinantes} assinantes no total
+                   </span>
+                </div>
+                <button
+                  className="px-4 py-2 rounded-xl border border-border/60 bg-background text-sm font-bold text-muted-foreground hover:bg-muted hover:text-foreground transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                >
+                  Próxima
+                </button>
+              </div>
+            )}
+          </div>
+        </section>
+
+      </div>
     </AdminLayout>
   )
 }

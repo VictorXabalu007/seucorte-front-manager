@@ -39,6 +39,7 @@ import type { Cliente } from "./types/cliente"
 import { ClienteSheet } from "./components/ClienteSheet"
 import { planoService } from "../planos/services/plano.service"
 import type { Plano } from "../planos/types/plano"
+import { getActiveUnidadeId } from "@/lib/auth"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
@@ -56,9 +57,10 @@ export default function ClienteProfilePage() {
     if (!id) return
     setIsLoading(true)
     try {
+      const unidadeId = getActiveUnidadeId()
       const [clienteData, planosData] = await Promise.all([
         clienteService.getClienteProfile(id),
-        planoService.getPlans()
+        unidadeId ? planoService.getPlans(unidadeId) : Promise.resolve([])
       ])
       setCliente(clienteData)
       setPlanos(planosData)
@@ -155,9 +157,9 @@ export default function ClienteProfilePage() {
                 <h2 className="text-4xl font-black tracking-tighter">{cliente.name}</h2>
                 <Badge variant="outline" className={cn(
                   "rounded-full px-3 py-1 font-black uppercase tracking-widest text-[10px]",
-                  cliente.type === 'pro' ? "bg-primary/10 text-primary border-primary/20" : "bg-muted text-muted-foreground"
+                  (cliente.type === 'pro' || (cliente.assinaturas && cliente.assinaturas.length > 0)) ? "bg-primary/10 text-primary border-primary/20" : "bg-muted text-muted-foreground"
                 )}>
-                  {cliente.type === 'pro' ? 'CLIENTE PRO' : 'CLIENTE AVULSO'}
+                  {(cliente.type === 'pro' || (cliente.assinaturas && cliente.assinaturas.length > 0)) ? 'ASSINANTE' : 'CLIENTE'}
                 </Badge>
                 {cliente.isBlocked && (
                   <Badge variant="destructive" className="rounded-full px-3 py-1 font-black uppercase tracking-widest text-[10px] gap-1">
@@ -281,7 +283,11 @@ export default function ClienteProfilePage() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <p className="text-xs font-black tracking-tight">{agto.service.name}</p>
+                          <p className="text-xs font-black tracking-tight">
+                            {agto.servicos && agto.servicos.length > 0
+                              ? `${agto.servicos[0].service.name}${agto.servicos.length > 1 ? ` (+${agto.servicos.length - 1})` : ""}`
+                              : agto.service?.name || "Serviço Avulso"}
+                          </p>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
@@ -301,9 +307,14 @@ export default function ClienteProfilePage() {
                             "rounded-lg font-black uppercase tracking-widest text-[9px]",
                             agto.status === 'COMPLETED' ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : 
                             agto.status === 'CANCELLED' ? "bg-rose-500/10 text-rose-500 border-rose-500/20" :
+                            agto.status === 'NO_SHOW' ? "bg-amber-500/10 text-amber-500 border-amber-500/20" :
                             "bg-blue-500/10 text-blue-500 border-blue-500/20"
                           )}>
-                            {agto.status}
+                            {agto.status === 'COMPLETED' ? 'Concluído' : 
+                             agto.status === 'CANCELLED' ? 'Cancelado' : 
+                             agto.status === 'SCHEDULED' ? 'Agendado' :
+                             agto.status === 'CONFIRMED' ? 'Confirmado' :
+                             agto.status === 'NO_SHOW' ? 'Faltou' : agto.status}
                           </Badge>
                         </TableCell>
                       </TableRow>

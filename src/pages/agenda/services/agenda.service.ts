@@ -3,25 +3,36 @@ import { ptBR } from "date-fns/locale"
 import api from "@/lib/api"
 import type { Appointment, Professional, Service } from "../types"
 
-const mapAppointment = (a: any): Appointment => ({
-  id: a.id,
-  clientName: a.clientName,
-  clientPhone: a.clientPhone,
-  professionalId: a.professionalId,
-  professionalName: a.professional?.user?.name || "N/A",
-  serviceId: a.serviceId,
-  serviceName: a.service?.name || "N/A",
-  serviceDuration: a.serviceDuration,
-  date: format(new Date(a.startTime), "dd MMM, yyyy", { locale: ptBR }),
-  rawDate: new Date(a.startTime),
-  startTime: format(new Date(a.startTime), "HH:mm"),
-  endTime: format(new Date(a.endTime), "HH:mm"),
-  status: a.status,
-  paymentStatus: a.paymentStatus,
-  amount: Number(a.amount),
-  notes: a.notes,
-  initials: a.clientName.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2),
-})
+const mapAppointment = (a: any): Appointment => {
+  const primaryService = a.servicos && a.servicos.length > 0 ? a.servicos[0] : null;
+  const extraCount = a.servicos ? a.servicos.length - 1 : 0;
+  
+  let servName = primaryService?.service?.name || "N/A";
+  if (extraCount > 0) {
+    servName += ` (+${extraCount})`;
+  }
+
+  return {
+    id: a.id,
+    clientName: a.clientName,
+    clientPhone: a.clientPhone,
+    professionalId: a.professionalId,
+    professionalName: a.professional?.user?.name || "N/A",
+    serviceId: primaryService?.serviceId || "",
+    serviceName: servName,
+    serviceDuration: a.serviceDuration,
+    date: format(a.startTime ? new Date(a.startTime) : new Date(), "dd MMM, yyyy", { locale: ptBR }),
+    rawDate: a.startTime ? new Date(a.startTime) : new Date(),
+    startTime: a.startTime ? format(new Date(a.startTime), "HH:mm") : "--:--",
+    endTime: a.endTime ? format(new Date(a.endTime), "HH:mm") : "--:--",
+    status: a.status,
+    paymentStatus: a.paymentStatus,
+    amount: Number(a.amount),
+    notes: a.notes,
+    servicos: a.servicos || [], 
+    initials: (a.clientName || "Cliente").split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2),
+  };
+};
 
 export const agendaService = {
   getAppointments: async (params?: { startDate?: string; endDate?: string; professionalId?: string; unidadeId?: string }): Promise<Appointment[]> => {
@@ -53,14 +64,26 @@ export const agendaService = {
     return res.data
   },
 
-  createAppointment: async (data: Partial<Appointment>): Promise<Appointment> => {
-    const res = await api.post("/appointments", data)
-    return res.data
+  createAppointment: async (data: any): Promise<Appointment> => {
+    const payload = { ...data };
+    if (payload.serviceId) {
+      payload.servicos = [{ serviceId: payload.serviceId, price: Number(payload.amount) || 0 }];
+      delete payload.serviceId;
+    }
+    const res = await api.post("/appointments", payload)
+    return mapAppointment(res.data)
   },
 
-  updateAppointment: async (id: string, data: Partial<Appointment>): Promise<Appointment> => {
-    const res = await api.patch(`/appointments/${id}`, data)
-    return res.data
+  updateAppointment: async (id: string, data: any): Promise<Appointment> => {
+    const payload = { ...data };
+    // Só atualizamos os serviços se vier `serviceId` do forms simples. 
+    // O Checkout PDV vai mandar "servicos" diretamente.
+    if (payload.serviceId && !payload.servicos) {
+      payload.servicos = [{ serviceId: payload.serviceId, price: Number(payload.amount) || 0 }];
+      delete payload.serviceId;
+    }
+    const res = await api.patch(`/appointments/${id}`, payload)
+    return mapAppointment(res.data)
   },
 
   deleteAppointment: async (id: string): Promise<void> => {

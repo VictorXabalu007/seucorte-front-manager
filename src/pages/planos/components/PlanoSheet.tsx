@@ -11,12 +11,17 @@ import {
   PlusCircle,
   Save,
   Type,
-  Activity
+  Activity,
+  Scissors,
+  Users,
+  Search,
+  X
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
 import {
   Sheet,
@@ -42,6 +47,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import type { Plano } from "../types/plano"
+import type { Service } from "../../servicos/types"
 
 const planoSchema = z.object({
   name: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
@@ -50,6 +56,8 @@ const planoSchema = z.object({
   features: z.array(z.string().min(1, "Característica não pode ser vazia")).min(1, "Adicione pelo menos uma característica"),
   billingCycle: z.enum(["monthly", "yearly"]),
   isActive: z.boolean(),
+  serviceIds: z.array(z.string()).optional(),
+  clienteIds: z.array(z.string()).optional(),
 })
 
 type PlanoFormValues = z.infer<typeof planoSchema>
@@ -59,14 +67,19 @@ interface PlanoSheetProps {
   onOpenChange: (open: boolean) => void
   onSave: (data: PlanoFormValues) => void
   plano?: Plano | null
+  servicosDisponiveis: Service[]
+  clientesDisponiveis: any[]
 }
 
 export function PlanoSheet({
   isOpen,
   onOpenChange,
   onSave,
-  plano
+  plano,
+  servicosDisponiveis,
+  clientesDisponiveis
 }: PlanoSheetProps) {
+  const [searchTerm, setSearchTerm] = useState("")
   const form = useForm<PlanoFormValues>({
     resolver: zodResolver(planoSchema),
     defaultValues: {
@@ -76,6 +89,8 @@ export function PlanoSheet({
       features: [""],
       billingCycle: "monthly",
       isActive: true,
+      serviceIds: [],
+      clienteIds: [],
     },
   })
 
@@ -94,6 +109,10 @@ export function PlanoSheet({
           features: plano.features,
           billingCycle: plano.billingCycle,
           isActive: plano.isActive,
+          serviceIds: plano.servicos ? plano.servicos.map((s: any) => s.id) : [],
+          clienteIds: clientesDisponiveis
+            .filter(c => c.assinaturas?.some((a: any) => a.plano.id === plano.id && a.isActive))
+            .map(c => c.id),
         })
       } else {
         form.reset({
@@ -103,6 +122,8 @@ export function PlanoSheet({
           features: [""],
           billingCycle: "monthly",
           isActive: true,
+          serviceIds: [],
+          clienteIds: [],
         })
       }
     }
@@ -127,7 +148,10 @@ export function PlanoSheet({
         </SheetHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSave)} className="space-y-6 pb-6">
+          <form 
+            onSubmit={form.handleSubmit(onSave, (errors) => console.log("Erro na validação do plano:", errors))} 
+            className="space-y-6 pb-6"
+          >
             <div className="space-y-4">
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Identificação & Custo</p>
               
@@ -189,6 +213,75 @@ export function PlanoSheet({
             </div>
 
             <div className="space-y-4">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Serviços Cobertos pelo Plano</p>
+              
+              <FormField
+                control={form.control}
+                name="serviceIds"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="mb-4">
+                      <FormLabel className="text-xs font-bold text-muted-foreground flex items-center gap-2">
+                        <Scissors className="size-3 text-primary" /> Selecione os serviços
+                      </FormLabel>
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        Apenas os serviços marcados abaixo usarão o saldo de fichas do cliente.
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[160px] overflow-y-auto custom-scrollbar pr-2">
+                      {servicosDisponiveis.map((service) => {
+                        const isChecked = field.value?.includes(service.id) || false
+                        return (
+                          <div
+                            key={service.id}
+                            className={`flex flex-row items-start space-x-3 space-y-0 rounded-lg border p-3 cursor-pointer transition-colors ${
+                              isChecked ? "bg-primary/5 border-primary/30" : "bg-card border-border/50 hover:bg-muted/50"
+                            }`}
+                            onClick={() => {
+                              const currentValues = field.value || []
+                              const newValue = isChecked
+                                ? currentValues.filter((v) => v !== service.id)
+                                : [...currentValues, service.id]
+                              field.onChange(newValue)
+                            }}
+                          >
+                            <FormControl>
+                              <Checkbox
+                                checked={isChecked}
+                                onClick={(e) => e.stopPropagation()}
+                                onCheckedChange={(checked) => {
+                                  const currentValues = field.value || []
+                                  const newValue = checked
+                                    ? [...currentValues, service.id]
+                                    : currentValues.filter((v) => v !== service.id)
+                                  field.onChange(newValue)
+                                }}
+                              />
+                            </FormControl>
+                            <div className="space-y-1 leading-none mt-0">
+                              <FormLabel className="text-xs font-semibold cursor-pointer">
+                                {service.name}
+                              </FormLabel>
+                              <p className="text-[10px] text-muted-foreground">
+                                {service.creditsCost} {service.creditsCost === 1 ? 'ficha' : 'fichas'}
+                              </p>
+                            </div>
+                          </div>
+                        )
+                      })}
+                      {servicosDisponiveis.length === 0 && (
+                        <div className="col-span-full py-4 text-center text-xs text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">
+                          Nenhum serviço cadastrado na unidade.
+                        </div>
+                      )}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="space-y-4">
               <FormField
                 control={form.control}
                 name="description"
@@ -198,6 +291,80 @@ export function PlanoSheet({
                     <FormControl>
                       <Textarea placeholder="Descreva os benefícios gerais do plano..." className="bg-background/50 border-border rounded-xl focus:ring-primary/20 min-h-[80px] resize-none" {...field} />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="space-y-4">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Clientes Assinantes</p>
+              
+              <div className="relative mb-2">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3 text-muted-foreground" />
+                <Input 
+                  placeholder="Buscar clientes por nome..." 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-8 h-9 text-xs bg-background/50 border-border rounded-xl focus:ring-primary/20"
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="clienteIds"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="grid grid-cols-1 gap-2 max-h-[160px] overflow-y-auto custom-scrollbar pr-2">
+                      {clientesDisponiveis
+                        .filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                        .map((cliente) => {
+                          const isChecked = field.value?.includes(cliente.id) || false
+                          return (
+                            <div
+                              key={cliente.id}
+                              className={`flex flex-row items-center space-x-3 space-y-0 rounded-lg border p-2 cursor-pointer transition-colors ${
+                                isChecked ? "bg-primary/5 border-primary/30" : "bg-card border-border/50 hover:bg-muted/50"
+                              }`}
+                              onClick={() => {
+                                const currentValues = field.value || []
+                                const newValue = isChecked
+                                  ? currentValues.filter((v) => v !== cliente.id)
+                                  : [...currentValues, cliente.id]
+                                field.onChange(newValue)
+                              }}
+                            >
+                              <FormControl>
+                                <Checkbox
+                                  checked={isChecked}
+                                  onClick={(e) => e.stopPropagation()}
+                                  onCheckedChange={(checked) => {
+                                    const currentValues = field.value || []
+                                    const newValue = checked
+                                      ? [...currentValues, cliente.id]
+                                      : currentValues.filter((v) => v !== cliente.id)
+                                    field.onChange(newValue)
+                                  }}
+                                />
+                              </FormControl>
+                              <div className="flex-1 min-w-0">
+                                <FormLabel className="text-[11px] font-bold cursor-pointer truncate block">
+                                  {cliente.name}
+                                </FormLabel>
+                                <p className="text-[9px] text-muted-foreground truncate">
+                                  {cliente.email || cliente.phone}
+                                </p>
+                              </div>
+                              <Users className={`size-3 ${isChecked ? "text-primary" : "text-muted-foreground/30"}`} />
+                            </div>
+                          )
+                        })}
+                      {clientesDisponiveis.length === 0 && (
+                        <div className="py-4 text-center text-xs text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border font-medium">
+                          Nenhum cliente disponível.
+                        </div>
+                      )}
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}

@@ -41,6 +41,7 @@ const serviceSchema = z.object({
   category: z.enum(["Cabelo", "Barba", "Combo", "Tratamento", "Outros"]),
   isActive: z.boolean(),
   barberIds: z.array(z.string()),
+  creditsCost: z.coerce.number().min(0, "Custo em fichas inválido"),
 })
 
 interface ServiceSheetProps {
@@ -70,8 +71,11 @@ export function ServiceSheet({
       category: "Outros",
       isActive: true,
       barberIds: [],
+      creditsCost: 0,
     },
   })
+
+
 
   useEffect(() => {
     if (isOpen) {
@@ -84,6 +88,7 @@ export function ServiceSheet({
           category: service.category || "Outros",
           isActive: service.isActive ?? true,
           barberIds: service.barberIds || [],
+          creditsCost: service.creditsCost || 0,
         })
       } else {
         form.reset({
@@ -94,10 +99,12 @@ export function ServiceSheet({
           category: "Outros",
           isActive: true,
           barberIds: [],
+          creditsCost: 0,
         })
       }
     }
   }, [service, isOpen, form])
+
 
   const onSubmit = (data: ServiceFormData) => {
     onSave(data)
@@ -175,9 +182,39 @@ export function ServiceSheet({
                           type="number"
                           placeholder="30"
                           {...field}
+                          onChange={(e) => {
+                            field.onChange(e)
+                            const val = e.target.value
+                            if (val) {
+                              form.setValue("creditsCost", parseInt(val))
+                            }
+                          }}
                           className="h-12 bg-card/40 border-border/50 rounded-2xl focus-visible:ring-primary/20 focus-visible:border-primary font-bold"
                         />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="creditsCost"
+                  render={({ field }) => (
+                    <FormItem>
+                      <label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">
+                        Custo em Fichas
+                      </label>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="0"
+                          {...field}
+                          className="h-12 bg-card/40 border-border/50 rounded-2xl focus-visible:ring-primary/20 focus-visible:border-primary font-bold"
+                        />
+                      </FormControl>
+                      <p className="text-[9px] font-bold text-primary/70 mt-1 ml-1">
+                        Calculado: 1 Minuto = 1 Ficha
+                      </p>
                       <FormMessage />
                     </FormItem>
                   )}

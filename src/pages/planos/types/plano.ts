@@ -6,4 +6,5 @@ export interface Plano {
   features: string[]
   billingCycle: 'monthly' | 'yearly'
   isActive: boolean
+  servicos?: Array<{ id: string; name: string }>
 }

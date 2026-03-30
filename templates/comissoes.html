@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-container": "#1a1919",
+                        "on-secondary-fixed": "#3f3f3f",
+                        "surface-tint": "#f3ffcd",
+                        "primary": "#f3ffcd",
+                        "primary-fixed-dim": "#b9ef00",
+                        "on-tertiary": "#675a00",
+                        "outline": "#767575",
+                        "on-tertiary-fixed": "#493f00",
+                        "on-surface": "#ffffff",
+                        "on-surface-variant": "#adaaaa",
+                        "primary-fixed": "#c5fe00",
+                        "inverse-on-surface": "#565555",
+                        "on-background": "#ffffff",
+                        "surface": "#0e0e0e",
+                        "on-primary-fixed-variant": "#506900",
+                        "on-error": "#450900",
+                        "tertiary-container": "#fce34b",
+                        "outline-variant": "#484847",
+                        "on-error-container": "#ffd2c8",
+                        "on-secondary-fixed-variant": "#5c5b5b",
+                        "on-primary-fixed": "#384b00",
+                        "surface-bright": "#2c2c2c",
+                        "error-dim": "#d53d18",
+                        "surface-container-low": "#131313",
+                        "surface-container-high": "#201f1f",
+                        "secondary-dim": "#d6d4d3",
+                        "secondary": "#e4e2e1",
+                        "on-primary-container": "#485e00",
+                        "error": "#ff7351",
+                        "error-container": "#b92902",
+                        "surface-dim": "#0e0e0e",
+                        "secondary-fixed": "#e4e2e1",
+                        "background": "#0e0e0e",
+                        "surface-container-highest": "#262626",
+                        "on-secondary-container": "#d2d0cf",
+                        "inverse-primary": "#4f6700",
+                        "tertiary-fixed": "#fce34b",
+                        "on-tertiary-fixed-variant": "#685c00",
+                        "tertiary-fixed-dim": "#eed53e",
+                        "on-tertiary-container": "#5d5200",
+                        "tertiary": "#fff1b2",
+                        "primary-dim": "#b9ef00",
+                        "surface-variant": "#262626",
+                        "secondary-fixed-dim": "#d6d4d3",
+                        "on-primary": "#4f6700",
+                        "inverse-surface": "#fcf9f8",
+                        "on-secondary": "#525151",
+                        "primary-container": "#c5fe00",
+                        "secondary-container": "#474747",
+                        "surface-container-lowest": "#000000",
+                        "tertiary-dim": "#eed53e"
+                    },
+                    fontFamily: {
+                        "headline": ["Plus Jakarta Sans"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3, .font-headline { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .glass-card {
+            background: rgba(26, 25, 25, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface antialiased">
+<!-- SideNavBar Shell -->
+<aside class="h-screen w-64 fixed left-0 top-0 overflow-y-auto bg-[#131313] border-r border-white/5 flex flex-col p-6 z-50">
+<div class="mb-10">
+<span class="text-xl font-black text-[#c5fe00] font-headline tracking-tight">Vanguard OS</span>
+</div>
+<nav class="flex-1 space-y-2">
+<!-- Active: Comissões -->
+<a class="flex items-center gap-3 px-4 py-3 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 transition-colors duration-200 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-['Plus_Jakarta_Sans'] font-bold tracking-tight">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 transition-colors duration-200 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="calendar_today">calendar_today</span>
+<span class="font-['Plus_Jakarta_Sans'] font-bold tracking-tight">Agenda</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 transition-colors duration-200 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="groups">groups</span>
+<span class="font-['Plus_Jakarta_Sans'] font-bold tracking-tight">Clientes</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 transition-colors duration-200 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="content_cut">content_cut</span>
+<span class="font-['Plus_Jakarta_Sans'] font-bold tracking-tight">Serviços</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 transition-colors duration-200 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+<span class="font-['Plus_Jakarta_Sans'] font-bold tracking-tight">Financeiro</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-[#c5fe00] font-bold bg-[#1a1919] rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="percent">percent</span>
+<span class="font-['Plus_Jakarta_Sans'] font-bold tracking-tight">Comissões</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 transition-colors duration-200 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="subscriptions">subscriptions</span>
+<span class="font-['Plus_Jakarta_Sans'] font-bold tracking-tight">Planos</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 transition-colors duration-200 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span class="font-['Plus_Jakarta_Sans'] font-bold tracking-tight">Relatórios</span>
+</a>
+</nav>
+<div class="mt-auto pt-6 border-t border-white/5 flex items-center gap-3">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-surface-bright">
+<img alt="User Profile Avatar" class="w-full h-full object-cover" data-alt="close-up portrait of a professional male barber with styled hair and beard in a dark boutique setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAdZKgIqjZeeA5wleEo5huEVzGTOo-IpFnEJELS41LFMGIOY9nYsZidFvTHaOYJf444OU-D2AfGC5PQ7is7PPJRYenAfSjp1QDvjOEZOtxffhuVDxVqd1GjNkKEK_t6dBe0vtYkgxpU4_Em-SjoaT0rDAJTpvnn0w7BYprzFCa4J8KbOUOM5iFAcr1DhlbxlSHWlRq7d2yON9SNfepQefSnyefruCBt7taJCQsAD_-JVSopkz55jeBDgOLwpmXC1spi9HOcCL8TFLM"/>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-bold text-on-surface">The Midnight Vanguard</span>
+<span class="text-xs text-on-surface-variant">Master Barber</span>
+</div>
+</div>
+</aside>
+<!-- TopNavBar Shell -->
+<header class="fixed top-0 right-0 left-64 h-16 z-40 bg-[#0e0e0e]/60 backdrop-blur-xl border-b border-white/5 flex justify-between items-center px-8">
+<div class="flex items-center flex-1">
+<div class="relative w-96">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm" data-icon="search">search</span>
+<input class="w-full bg-surface-container-low border-none rounded-lg py-2 pl-10 pr-4 text-sm focus:ring-1 ring-[#c5fe00]/30 placeholder:text-neutral-600" placeholder="Buscar barbeiro ou transação..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-bright transition-colors text-neutral-400">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-bright transition-colors text-neutral-400">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="ml-64 pt-24 px-8 pb-12 min-h-screen">
+<!-- Header Actions -->
+<div class="flex justify-between items-start mb-8">
+<div class="space-y-4">
+<div class="flex items-center gap-4">
+<h1 class="text-4xl font-black font-headline tracking-tight text-on-surface">Gestão de Comissões</h1>
+<div class="flex items-center bg-surface-container-low border border-white/5 rounded-xl p-1 shadow-lg">
+<button class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-surface-bright text-on-surface-variant hover:text-on-surface transition-all">
+<span class="material-symbols-outlined text-xl" data-icon="chevron_left">chevron_left</span>
+</button>
+<div class="px-4 flex flex-col items-center min-w-[140px]">
+<span class="text-xs font-black uppercase tracking-widest text-[#c5fe00]">Maio 2024</span>
+<div class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(243,255,205,0.8)]"></span>
+<span class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">Mês Aberto</span>
+</div>
+</div>
+<button class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-surface-bright text-on-surface-variant hover:text-on-surface transition-all">
+<span class="material-symbols-outlined text-xl" data-icon="chevron_right">chevron_right</span>
+</button>
+</div>
+</div>
+<p class="text-on-surface-variant">Acompanhamento financeiro em tempo real da equipe.</p>
+</div>
+<div class="flex gap-3 pt-2">
+<button class="px-6 py-3 rounded-xl border border-outline-variant text-on-surface font-semibold flex items-center gap-2 hover:bg-surface-bright transition-colors">
+<span class="material-symbols-outlined" data-icon="ios_share">ios_share</span>
+                    Exportar
+                </button>
+<button class="px-6 py-3 rounded-xl bg-primary-container text-on-primary-container font-bold flex items-center gap-2 hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined" data-icon="payments" style="font-variation-settings: 'FILL' 1;">payments</span>
+                    Pagar Tudo
+                </button>
+</div>
+</div>
+<!-- Financial Summary Grid -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+<div class="glass-card p-6 rounded-xl overflow-hidden relative group">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors"></div>
+<p class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2">Faturamento Total (Maio)</p>
+<h3 class="text-3xl font-black font-headline text-on-surface">R$ 42.850,00</h3>
+<div class="mt-4 flex items-center gap-1 text-primary text-xs font-bold">
+<span class="material-symbols-outlined text-sm" data-icon="trending_up">trending_up</span>
+                    +12% vs mês anterior
+                </div>
+</div>
+<div class="glass-card p-6 rounded-xl">
+<p class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2">Total Rateado (Comissões)</p>
+<h3 class="text-3xl font-black font-headline text-on-surface">R$ 18.420,50</h3>
+<div class="mt-4 w-full bg-surface-container rounded-full h-1.5 overflow-hidden">
+<div class="bg-primary-fixed-dim h-full" style="width: 43%"></div>
+</div>
+</div>
+<div class="glass-card p-6 rounded-xl">
+<p class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2">Líquido (Pós Comissões)</p>
+<h3 class="text-3xl font-black font-headline text-[#c5fe00]">R$ 24.429,50</h3>
+<div class="mt-4 flex items-center gap-1 text-on-surface-variant text-xs">
+                    Margem de <span class="text-on-surface font-bold">57%</span>
+</div>
+</div>
+<div class="glass-card p-6 rounded-xl bg-error/5 border border-error/10">
+<p class="text-xs font-bold uppercase tracking-widest text-error/70 mb-2">Pendentes em Maio</p>
+<h3 class="text-3xl font-black font-headline text-error">R$ 3.120,00</h3>
+<div class="mt-4 flex items-center gap-1 text-error text-xs font-bold">
+<span class="material-symbols-outlined text-sm" data-icon="schedule">schedule</span>
+                    7 pagamentos em aberto
+                </div>
+</div>
+</div>
+<!-- Barber Performance (Bento Grid) -->
+<section class="mb-12">
+<div class="flex items-center justify-between mb-6">
+<h2 class="text-xl font-bold font-headline flex items-center gap-2">
+<span class="w-1.5 h-6 bg-primary rounded-full"></span>
+                    Performance da Equipe (Maio 2024)
+                </h2>
+<div class="flex gap-2">
+<button class="w-8 h-8 rounded-full flex items-center justify-center bg-surface-container hover:bg-surface-bright transition-colors">
+<span class="material-symbols-outlined text-sm" data-icon="chevron_left">chevron_left</span>
+</button>
+<button class="w-8 h-8 rounded-full flex items-center justify-center bg-surface-container hover:bg-surface-bright transition-colors">
+<span class="material-symbols-outlined text-sm" data-icon="chevron_right">chevron_right</span>
+</button>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+<!-- Barber Card 1 -->
+<div class="bg-surface-container-low rounded-xl p-5 flex flex-col hover:translate-y-[-4px] transition-transform duration-300">
+<div class="flex items-start justify-between mb-4">
+<div class="relative">
+<img alt="Barber Profile" class="w-14 h-14 rounded-xl object-cover" data-alt="close-up of a stylish male barber with neat hair and trimmed beard looking confident in dark studio lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDAviOSHDV6MYue_dk3aRZ68qtM9CBH_sts7eIdlyQE8zWMT2FcOD1nWw9At-0BnG53L1NNX2UEoG7NUgVx9stMt-2elBWc1OF-ayQtbhQKyQL0Sb9r_2VT-MF66OJg_1bLDyJd4m8hkNulEf_ASl2qUOQXk18DiiSgH0rjrK9NGgJ44_s_6IHhYNVweV4uvfbqidcRSnejEZHhlN3L4C2Ve9IVBevJsBJRT5BXgjnvsUArNM_dHGmb4l2UPTYBfBypBqf8WEH-UEM"/>
+<span class="absolute -bottom-1 -right-1 bg-primary text-on-primary-container text-[10px] font-black px-1.5 py-0.5 rounded-md">PRO</span>
+</div>
+<div class="text-right">
+<span class="block text-xs text-on-surface-variant">Comissões Mês</span>
+<span class="text-lg font-bold text-on-surface">R$ 5.240</span>
+</div>
+</div>
+<div class="mb-4">
+<h4 class="font-bold text-on-surface">Alex "The Blade" Silva</h4>
+<div class="flex items-center gap-1 mt-0.5">
+<span class="material-symbols-outlined text-[#eed53e] text-xs" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-xs text-on-surface font-medium">4.9</span>
+<span class="text-[10px] text-on-surface-variant ml-2">124 serviços este mês</span>
+</div>
+</div>
+<div class="mt-auto space-y-3">
+<div class="flex justify-between text-xs">
+<span class="text-on-surface-variant">Pendente:</span>
+<span class="text-error font-bold">R$ 450,00</span>
+</div>
+<div class="flex gap-2">
+<button class="flex-1 py-2 rounded-lg bg-surface-bright text-on-surface text-xs font-bold hover:bg-neutral-700 transition-colors">Detalhes</button>
+<button class="flex-1 py-2 rounded-lg bg-primary-container text-on-primary-container text-xs font-bold hover:opacity-90 transition-opacity">Pagar</button>
+</div>
+</div>
+</div>
+<!-- Barber Card 2 -->
+<div class="bg-surface-container-low rounded-xl p-5 flex flex-col hover:translate-y-[-4px] transition-transform duration-300">
+<div class="flex items-start justify-between mb-4">
+<div class="relative">
+<img alt="Barber Profile" class="w-14 h-14 rounded-xl object-cover" data-alt="professional portrait of a bald man with a full beard and tattooed arms in a luxury barber shop setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDz6HKbK2VghXc0f6bC3cAMNbbN8SP1z4uDBeGrY17tW2l7WG8QSJYIuwlqLbCTlwo86IZMNCqvNJJBzopXHyVhqJR4CvI5oy7vWL0idUKkSSWuq1mxzxzKpa8HtCK5P8-rI9yyCxvww4f1rLZM4TPiAUOXCTpyPTKzi-znWGsvWG6_C5dh6-OX8czqEYIkgQy0z-18VL9_GTDXtFtr3aalsHwraVABqLxlmRpYhYEXm-V7m40N9SNHO8_NRqUUNT6svn2H4YHgaKw"/>
+<span class="absolute -bottom-1 -right-1 bg-surface-bright text-on-surface text-[10px] font-black px-1.5 py-0.5 rounded-md">MASTER</span>
+</div>
+<div class="text-right">
+<span class="block text-xs text-on-surface-variant">Comissões Mês</span>
+<span class="text-lg font-bold text-on-surface">R$ 4.890</span>
+</div>
+</div>
+<div class="mb-4">
+<h4 class="font-bold text-on-surface">Marcus Vinicius</h4>
+<div class="flex items-center gap-1 mt-0.5">
+<span class="material-symbols-outlined text-[#eed53e] text-xs" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-xs text-on-surface font-medium">5.0</span>
+<span class="text-[10px] text-on-surface-variant ml-2">98 serviços este mês</span>
+</div>
+</div>
+<div class="mt-auto space-y-3">
+<div class="flex justify-between text-xs">
+<span class="text-on-surface-variant">Pendente:</span>
+<span class="text-primary font-bold">Liquidado</span>
+</div>
+<div class="flex gap-2">
+<button class="flex-1 py-2 rounded-lg bg-surface-bright text-on-surface text-xs font-bold hover:bg-neutral-700 transition-colors">Detalhes</button>
+<button class="flex-1 py-2 rounded-lg bg-primary-container text-on-primary-container text-xs font-bold hover:opacity-90 transition-opacity">Pagar</button>
+</div>
+</div>
+</div>
+<!-- Barber Card 3 -->
+<div class="bg-surface-container-low rounded-xl p-5 flex flex-col hover:translate-y-[-4px] transition-transform duration-300">
+<div class="flex items-start justify-between mb-4">
+<div class="relative">
+<img alt="Barber Profile" class="w-14 h-14 rounded-xl object-cover" data-alt="stylish male with fade haircut and modern clothing in a dimly lit high-end barber studio environment" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDSItBT7CgW7Z7jx3rSUWYIeLS5tvo1B1RYaZ5vVprn0fYgnNPTztnUJe2TEHYwjtHw0r9D55_NmElYArClu588rzNyeG8jDRfR1BDZ4IJyuy7qryAu9nQ7RnuwTXEKRCH8gJUiAHsZKF97RhUB2RMMqNMzseTgCfzYrroAUjnJixTzqDQVGVCwFvXx9yW1C--gWJ0rVlNP_t-qE2Zz5zAMwFIohDDXeu5OZdmBvVmNV_YMWc3lnGXgOe1M3ZLdoFwqCwKJQJmoFmg"/>
+<span class="absolute -bottom-1 -right-1 bg-surface-bright text-on-surface text-[10px] font-black px-1.5 py-0.5 rounded-md">SENIOR</span>
+</div>
+<div class="text-right">
+<span class="block text-xs text-on-surface-variant">Comissões Mês</span>
+<span class="text-lg font-bold text-on-surface">R$ 3.720</span>
+</div>
+</div>
+<div class="mb-4">
+<h4 class="font-bold text-on-surface">Ruan Santos</h4>
+<div class="flex items-center gap-1 mt-0.5">
+<span class="material-symbols-outlined text-[#eed53e] text-xs" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-xs text-on-surface font-medium">4.7</span>
+<span class="text-[10px] text-on-surface-variant ml-2">110 serviços este mês</span>
+</div>
+</div>
+<div class="mt-auto space-y-3">
+<div class="flex justify-between text-xs">
+<span class="text-on-surface-variant">Pendente:</span>
+<span class="text-error font-bold">R$ 1.200,00</span>
+</div>
+<div class="flex gap-2">
+<button class="flex-1 py-2 rounded-lg bg-surface-bright text-on-surface text-xs font-bold hover:bg-neutral-700 transition-colors">Detalhes</button>
+<button class="flex-1 py-2 rounded-lg bg-primary-container text-on-primary-container text-xs font-bold hover:opacity-90 transition-opacity">Pagar</button>
+</div>
+</div>
+</div>
+<!-- Barber Card 4 -->
+<div class="bg-surface-container-low rounded-xl p-5 flex flex-col hover:translate-y-[-4px] transition-transform duration-300">
+<div class="flex items-start justify-between mb-4">
+<div class="relative">
+<img alt="Barber Profile" class="w-14 h-14 rounded-xl object-cover" data-alt="professional male portrait with sharp facial features and clean hairstyle against a dark moody background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC2BNbJNY3gufvpn8Ww1b2Sj2CZQOezzP6uJvXoBD-ZgosTGhVtTUJUMhvTCJPpF6VIF9Vq3X1cWd1-8_2daJ6SASGpsHqYpkBjecwWwVOBBDEqWXTspB-QpWNXuGF7t0ONTYGZa47dTe_aZ5XSig_3ux_G3vgCERutGcgyuGpDCP29LoU_F6X_CGVt3sceuZA7-ZlvB3X0grFJm47bej32xfoOsUxI6ZF2tcZYu_Mi5YiyDtZL1zQu-mZbVP280543Bz82clvqS1c"/>
+<span class="absolute -bottom-1 -right-1 bg-surface-bright text-on-surface text-[10px] font-black px-1.5 py-0.5 rounded-md">JUNIOR</span>
+</div>
+<div class="text-right">
+<span class="block text-xs text-on-surface-variant">Comissões Mês</span>
+<span class="text-lg font-bold text-on-surface">R$ 2.150</span>
+</div>
+</div>
+<div class="mb-4">
+<h4 class="font-bold text-on-surface">Daniel Lima</h4>
+<div class="flex items-center gap-1 mt-0.5">
+<span class="material-symbols-outlined text-[#eed53e] text-xs" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-xs text-on-surface font-medium">4.8</span>
+<span class="text-[10px] text-on-surface-variant ml-2">64 serviços este mês</span>
+</div>
+</div>
+<div class="mt-auto space-y-3">
+<div class="flex justify-between text-xs">
+<span class="text-on-surface-variant">Pendente:</span>
+<span class="text-error font-bold">R$ 230,00</span>
+</div>
+<div class="flex gap-2">
+<button class="flex-1 py-2 rounded-lg bg-surface-bright text-on-surface text-xs font-bold hover:bg-neutral-700 transition-colors">Detalhes</button>
+<button class="flex-1 py-2 rounded-lg bg-primary-container text-on-primary-container text-xs font-bold hover:opacity-90 transition-opacity">Pagar</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Movement History Header & Filters -->
+<section class="bg-surface-container-low rounded-2xl overflow-hidden">
+<div class="p-8 border-b border-white/5">
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+<h2 class="text-xl font-bold font-headline">Histórico de Movimentações (Maio)</h2>
+<div class="flex flex-wrap items-center gap-4">
+<div class="flex p-1 bg-surface-container rounded-lg">
+<button class="px-4 py-1.5 text-xs font-bold rounded-md text-on-surface-variant hover:text-on-surface transition-all">Hoje</button>
+<button class="px-4 py-1.5 text-xs font-bold text-on-surface-variant hover:text-on-surface transition-all">Semana</button>
+<button class="px-4 py-1.5 text-xs font-bold rounded-md bg-surface-bright text-on-surface transition-all">Mês</button>
+</div>
+<div class="flex gap-2">
+<button class="px-4 py-2 bg-surface-container border border-white/5 rounded-lg text-xs font-bold flex items-center gap-2">
+<span class="material-symbols-outlined text-sm" data-icon="filter_list">filter_list</span>
+                                Filtros Avançados
+                            </button>
+</div>
+</div>
+</div>
+</div>
+<!-- Data Table -->
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-high/50 text-[10px] uppercase tracking-[0.15em] text-on-surface-variant font-black">
+<th class="px-8 py-5">Data &amp; Hora</th>
+<th class="px-6 py-5">Tipo</th>
+<th class="px-6 py-5">Item</th>
+<th class="px-6 py-5">Barbeiro</th>
+<th class="px-6 py-5 text-right">Venda Bruta</th>
+<th class="px-6 py-5">Divisão (Casa/Barbeiro)</th>
+<th class="px-6 py-5">Status</th>
+<th class="px-8 py-5 text-right">Ações</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-white/[0.03]">
+<!-- Row 1 -->
+<tr class="hover:bg-white/[0.02] transition-colors group">
+<td class="px-8 py-5">
+<span class="block text-sm font-semibold text-on-surface">12 Mai 2024</span>
+<span class="text-xs text-on-surface-variant">14:30</span>
+</td>
+<td class="px-6 py-5">
+<span class="px-2 py-1 rounded bg-primary/10 text-primary text-[10px] font-black uppercase">Serviço</span>
+</td>
+<td class="px-6 py-5">
+<span class="text-sm font-medium text-on-surface">Corte Degradê + Barba</span>
+</td>
+<td class="px-6 py-5">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-surface-bright overflow-hidden">
+<img alt="Avatar" class="w-full h-full object-cover" data-alt="small circular portrait of a barber" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBU8g2liD9jzygaQydzMLeaF_L2RdnhCiJAoO2GBH7ZsgBIrLDSFRucvWgNsgHXg-5Q4NTsnCpfFWNZ2fouDwUVU47tI83XyjXxoEEs5iuhVxqQftTIRHh3a2pHLggaqCWbvSPnxTonocqk2Gr2fH0kzSYHFGoD4nDjYMhlS_UCNzqJeFBzylpu7AJHVuyh1w6lsv4JBiQwPkcikGZV4b2lwdvYPTcwEvguGnoUdHxMZVQhnB8oE_Dspv-WA_ITrnepqATtRMxI3Eo"/>
+</div>
+<span class="text-sm text-on-surface">Alex Silva</span>
+</div>
+</td>
+<td class="px-6 py-5 text-right font-headline font-bold text-on-surface">
+                                R$ 85,00
+                            </td>
+<td class="px-6 py-5">
+<div class="flex items-center gap-3">
+<span class="text-xs text-on-surface-variant">R$ 42,50</span>
+<div class="w-12 h-1 bg-surface-container rounded-full overflow-hidden">
+<div class="bg-primary-fixed-dim h-full w-1/2"></div>
+</div>
+<span class="text-xs text-primary font-bold">R$ 42,50</span>
+</div>
+</td>
+<td class="px-6 py-5">
+<div class="flex items-center gap-1.5 text-primary">
+<span class="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(243,255,205,0.8)]"></span>
+<span class="text-xs font-bold">Liquidado</span>
+</div>
+</td>
+<td class="px-8 py-5 text-right">
+<button class="p-2 hover:bg-surface-bright rounded-lg transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-white/[0.02] transition-colors group">
+<td class="px-8 py-5">
+<span class="block text-sm font-semibold text-on-surface">12 Mai 2024</span>
+<span class="text-xs text-on-surface-variant">15:15</span>
+</td>
+<td class="px-6 py-5">
+<span class="px-2 py-1 rounded bg-tertiary/10 text-tertiary text-[10px] font-black uppercase">Produto</span>
+</td>
+<td class="px-6 py-5">
+<span class="text-sm font-medium text-on-surface">Pomada Efeito Matte 80g</span>
+</td>
+<td class="px-6 py-5">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-surface-bright overflow-hidden">
+<img alt="Avatar" class="w-full h-full object-cover" data-alt="small circular portrait of a barber" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBs2lg5M-HhOsF2QxIfXP2_IpjTdKlANY3y-OHpy3Ex388jr-Mn7faQ4sCMyV70i-XEyEp2PpImWhdSau-4L3g6ovzhk_OubsX6QiIIIAoJ8uHrvZuyDzn-6Qx402pXzandVAKEPrbejIowbyKbq0nCCS_mtAks6AfPOLwFV_UVPpASAz6-hrWlRNfrUOYBgfyhDyfd-QUrKCBPj7qqc4WuMbP9YuTXJPv6YQNs0mg6gomqShuOL9r2HZ7gIQQafyR_Hv3TEf8107Q"/>
+</div>
+<span class="text-sm text-on-surface">Ruan Santos</span>
+</div>
+</td>
+<td class="px-6 py-5 text-right font-headline font-bold text-on-surface">
+                                R$ 65,00
+                            </td>
+<td class="px-6 py-5">
+<div class="flex items-center gap-3">
+<span class="text-xs text-on-surface-variant">R$ 52,00</span>
+<div class="w-12 h-1 bg-surface-container rounded-full overflow-hidden">
+<div class="bg-primary-fixed-dim h-full" style="width: 20%"></div>
+</div>
+<span class="text-xs text-primary font-bold">R$ 13,00</span>
+</div>
+</td>
+<td class="px-6 py-5">
+<div class="flex items-center gap-1.5 text-error">
+<span class="w-1.5 h-1.5 rounded-full bg-error"></span>
+<span class="text-xs font-bold">Pendente</span>
+</div>
+</td>
+<td class="px-8 py-5 text-right">
+<button class="p-2 hover:bg-surface-bright rounded-lg transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-white/[0.02] transition-colors group">
+<td class="px-8 py-5">
+<span class="block text-sm font-semibold text-on-surface">12 Mai 2024</span>
+<span class="text-xs text-on-surface-variant">16:00</span>
+</td>
+<td class="px-6 py-5">
+<span class="px-2 py-1 rounded bg-primary/10 text-primary text-[10px] font-black uppercase">Serviço</span>
+</td>
+<td class="px-6 py-5">
+<span class="text-sm font-medium text-on-surface">Corte Clássico</span>
+</td>
+<td class="px-6 py-5">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-surface-bright overflow-hidden">
+<img alt="Avatar" class="w-full h-full object-cover" data-alt="small circular portrait of a barber" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD8nKoJY_wLkVMtQYvSRrKgaTOm-eQkDpk8P0Mvf1exGT4DSB5Q1Rje3ufsYA-NDsoWAGjfIi7mPSoz_Q2m-fViZbompkQ1Jhubnf7JjeHgpeJRFTUGGms64rAVEdQzPTx2u5sLG3S0oLrZ_xWtGg_DvNhRHRpIbsv4L7uEno16kbUogzovJ_RkDypps2wyHNCtIZCnd6erQABW4x4vD5Gh8IRry6E5Pj-NUX8fDAoLUNiQi6lLCOZ92X95UszBxQwTqYGfgLf-7Xg"/>
+</div>
+<span class="text-sm text-on-surface">Marcus Vinicius</span>
+</div>
+</td>
+<td class="px-6 py-5 text-right font-headline font-bold text-on-surface">
+                                R$ 60,00
+                            </td>
+<td class="px-6 py-5">
+<div class="flex items-center gap-3">
+<span class="text-xs text-on-surface-variant">R$ 30,00</span>
+<div class="w-12 h-1 bg-surface-container rounded-full overflow-hidden">
+<div class="bg-primary-fixed-dim h-full w-1/2"></div>
+</div>
+<span class="text-xs text-primary font-bold">R$ 30,00</span>
+</div>
+</td>
+<td class="px-6 py-5">
+<div class="flex items-center gap-1.5 text-primary">
+<span class="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(243,255,205,0.8)]"></span>
+<span class="text-xs font-bold">Liquidado</span>
+</div>
+</td>
+<td class="px-8 py-5 text-right">
+<button class="p-2 hover:bg-surface-bright rounded-lg transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-white/[0.02] transition-colors group border-none">
+<td class="px-8 py-5">
+<span class="block text-sm font-semibold text-on-surface">12 Mai 2024</span>
+<span class="text-xs text-on-surface-variant">17:45</span>
+</td>
+<td class="px-6 py-5">
+<span class="px-2 py-1 rounded bg-primary/10 text-primary text-[10px] font-black uppercase">Serviço</span>
+</td>
+<td class="px-6 py-5">
+<span class="text-sm font-medium text-on-surface">Pezinho + Lavagem</span>
+</td>
+<td class="px-6 py-5">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-surface-bright overflow-hidden">
+<img alt="Avatar" class="w-full h-full object-cover" data-alt="small circular portrait of a barber" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAH3Ef2uZmRXskpTGQECJIFEibYZ_J67coEeE8wjKxNVs-ad4xg-1Zkuk96q3pdsh2SyL4hcvWTW-nv737J1cXkCVykARKlP_oL2QGu6Zzy2DbmDkfk8rxQac_yZI-5hJxxVboMlVtMgSqMONoj5_eMXYW_Xm0_84dh1IZiHGBbwyjbi-Phv3L51qlKxcVn3HIjKBVQD46oJYbtBTvOe3GW3dbjYPoMgn1h8g3kH9SIpoMX6ZXJ9inNYH5LvaCkw1Ohcb_GP5VasA8"/>
+</div>
+<span class="text-sm text-on-surface">Daniel Lima</span>
+</div>
+</td>
+<td class="px-6 py-5 text-right font-headline font-bold text-on-surface">
+                                R$ 35,00
+                            </td>
+<td class="px-6 py-5">
+<div class="flex items-center gap-3">
+<span class="text-xs text-on-surface-variant">R$ 21,00</span>
+<div class="w-12 h-1 bg-surface-container rounded-full overflow-hidden">
+<div class="bg-primary-fixed-dim h-full" style="width: 40%"></div>
+</div>
+<span class="text-xs text-primary font-bold">R$ 14,00</span>
+</div>
+</td>
+<td class="px-6 py-5">
+<div class="flex items-center gap-1.5 text-error">
+<span class="w-1.5 h-1.5 rounded-full bg-error"></span>
+<span class="text-xs font-bold">Pendente</span>
+</div>
+</td>
+<td class="px-8 py-5 text-right">
+<button class="p-2 hover:bg-surface-bright rounded-lg transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Table Footer / Pagination -->
+<div class="px-8 py-6 border-t border-white/5 flex items-center justify-between">
+<span class="text-xs text-on-surface-variant">Mostrando <span class="text-on-surface font-bold">1-10</span> de 42 transações em <span class="text-on-surface">Maio</span></span>
+<div class="flex gap-2">
+<button class="px-4 py-2 bg-surface-container rounded-lg text-xs font-bold text-on-surface-variant hover:text-on-surface transition-colors">Anterior</button>
+<button class="px-4 py-2 bg-surface-bright rounded-lg text-xs font-bold text-on-surface">Próximo</button>
+</div>
+</div>
+</section>
+</main>
+</body></html>

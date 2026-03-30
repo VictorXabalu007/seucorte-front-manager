@@ -1,4 +1,4 @@
-import { Edit2, Trash2, Phone, ChevronLeft, ChevronRight } from "lucide-react"
+import { Edit2, Trash2, Phone, ChevronLeft, ChevronRight, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -16,11 +16,12 @@ interface AppointmentTableProps {
   setCurrentPage: (page: number) => void
   onEdit: (a: Appointment) => void
   onDelete: (a: Appointment) => void
+  onCheckout: (a: Appointment) => void
 }
 
 export function AppointmentTable({
   appointments, totalAppointments, currentPage, totalPages, itemsPerPage,
-  setCurrentPage, onEdit, onDelete,
+  setCurrentPage, onEdit, onDelete, onCheckout,
 }: AppointmentTableProps) {
   return (
     <div className="bg-card/40 rounded-3xl border border-border shadow-sm overflow-hidden backdrop-blur-sm">
@@ -86,6 +87,16 @@ export function AppointmentTable({
                     </TableCell>
                     <TableCell className="py-4 pr-8 text-right">
                       <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {a.status !== "COMPLETED" && a.status !== "CANCELLED" && (
+                          <Button
+                            variant="ghost" size="icon"
+                            className="size-8 text-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-lg"
+                            title="Finalizar (PDV)"
+                            onClick={() => onCheckout(a)}
+                          >
+                            <ShoppingCart className="size-3.5" />
+                          </Button>
+                        )}
                         <Button
                           variant="ghost" size="icon"
                           className="size-8 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg"
@@ -137,6 +148,11 @@ export function AppointmentTable({
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
+                  {a.status !== "COMPLETED" && a.status !== "CANCELLED" && (
+                    <Button variant="ghost" size="icon" className="size-8 rounded-lg" onClick={() => onCheckout(a)} title="Finalizar (PDV)">
+                      <ShoppingCart className="size-4 text-emerald-500" />
+                    </Button>
+                  )}
                   <Button variant="ghost" size="icon" className="size-8 rounded-lg" onClick={() => onEdit(a)}>
                     <Edit2 className="size-4 text-primary" />
                   </Button>

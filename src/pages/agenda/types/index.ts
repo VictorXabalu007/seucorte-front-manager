@@ -16,6 +16,30 @@ export interface Appointment {
   amount: number
   notes?: string
   initials: string
+  cliente?: {
+    id: string
+    assinaturas: Array<{
+      id: string
+      isActive: boolean
+      plano: {
+        id: string
+        name: string
+        price: number
+        servicos: Array<{ id: string }>
+      }
+    }>
+  }
+  servicos?: {
+    id: string
+    serviceId: string
+    price: number
+    isPlano: boolean
+    service: {
+      id: string
+      name: string
+      duration: number
+    }
+  }[]
 }
 
 export interface Professional {
@@ -30,6 +54,7 @@ export interface Service {
   name: string
   duration: number // minutes
   price: number
+  creditsCost: number
 }
 
 export interface AppointmentFormData {

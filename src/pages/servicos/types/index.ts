@@ -11,6 +11,7 @@ export interface Service {
   isActive: boolean
   barberIds: string[]
   serviceIds?: string[]
+  creditsCost: number
 }
 
 export interface ServiceFormData {
@@ -21,4 +22,5 @@ export interface ServiceFormData {
   category: ServiceCategory
   isActive: boolean
   barberIds: string[]
+  creditsCost: number
 }

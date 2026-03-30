@@ -1,8 +1,14 @@
-import { Star, TrendingUp, Package, Scissors, CheckCircle2, AlertCircle } from "lucide-react"
+import { Star, ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
 import type { BarberCommissionStats } from "../types"
+import { Swiper, SwiperSlide } from "swiper/react"
+import { Navigation } from "swiper/modules"
+import { useRef } from "react"
+import type { Swiper as SwiperType } from "swiper"
+
+import "swiper/css"
+import "swiper/css/navigation"
 
 interface BarberPerformanceCardProps {
   stats: BarberCommissionStats
@@ -11,99 +17,65 @@ interface BarberPerformanceCardProps {
 }
 
 const BarberPerformanceCard = ({ stats, onViewDetails, onLiquidate }: BarberPerformanceCardProps) => {
-  const performanceRate = (stats.paidCommission / stats.totalCommission) * 100 || 0
+  const formatCurrency = (value: number) => {
+    return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+  }
+
+  const isLiquidated = stats.pendingCommission <= 0
 
   return (
-    <div className="bg-card/40 border border-border/50 rounded-xl p-4 sm:p-6 hover:shadow-xl transition-all duration-500 group overflow-hidden relative flex flex-col h-full">
-      <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity hidden sm:block">
-        <TrendingUp className="size-24 text-primary" />
-      </div>
-
-      <div className="flex items-center gap-4 mb-4 sm:mb-6 relative z-10">
+    <div className="bg-card/40 rounded-xl p-5 flex flex-col border border-border/50 hover:translate-y-[-4px] transition-transform duration-300 h-full">
+      <div className="flex items-start justify-between mb-4">
         <div className="relative">
-          <Avatar className="size-12 sm:size-16 rounded-xl border-2 border-primary/20 p-1 bg-background">
-            <AvatarImage src={stats.avatar} className="rounded-xl object-cover" />
-            <AvatarFallback className="rounded-xl bg-primary text-primary-foreground font-black text-lg sm:text-xl">
+          <Avatar className="w-14 h-14 rounded-xl border-border">
+            <AvatarImage src={stats.avatar} className="object-cover" />
+            <AvatarFallback className="rounded-xl bg-primary text-primary-foreground font-black text-xl">
               {stats.barberName.substring(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
-          <div className="absolute -bottom-1 -right-1 size-5 sm:size-6 bg-emerald-500 rounded-lg border-2 sm:border-4 border-card flex items-center justify-center">
-            <CheckCircle2 className="size-2 sm:size-3 text-white" />
-          </div>
+          <span className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground text-[10px] font-black px-1.5 py-0.5 rounded-md">
+            PRO
+          </span>
         </div>
-        <div>
-          <h3 className="font-black text-base sm:text-lg tracking-tight group-hover:text-primary transition-colors">{stats.barberName}</h3>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-0.5">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <Star key={i} className={cn("size-2.5 sm:size-3", i <= 4 ? "text-amber-400 fill-amber-400" : "text-muted")} />
-              ))}
-            </div>
-            <span className="text-[9px] sm:text-[10px] font-black text-muted-foreground uppercase tracking-widest">Master</span>
-          </div>
+        <div className="text-right">
+          <span className="block text-xs text-muted-foreground">Comissões Mês</span>
+          <span className="text-lg font-bold text-foreground">{formatCurrency(stats.totalCommission)}</span>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 sm:gap-4 mb-4 sm:mb-6 relative z-10">
-        <div className="bg-muted/30 p-2.5 sm:p-3 rounded-2xl border border-border/30">
-          <p className="text-[8px] sm:text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1 flex items-center gap-1">
-            <Scissors className="size-3 text-blue-500" /> Serviços
-          </p>
-          <p className="text-base sm:text-lg font-black tracking-tighter tabular-nums">{stats.totalServices}</p>
-        </div>
-        <div className="bg-muted/30 p-2.5 sm:p-3 rounded-2xl border border-border/30">
-          <p className="text-[8px] sm:text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1 flex items-center gap-1">
-            <Package className="size-3 text-amber-500" /> Produtos
-          </p>
-          <p className="text-base sm:text-lg font-black tracking-tighter tabular-nums">{stats.totalProducts}</p>
+      <div className="mb-4">
+        <h4 className="font-bold text-foreground truncate">{stats.barberName}</h4>
+        <div className="flex items-center gap-1 mt-0.5">
+          <Star className="size-3 text-amber-500 fill-amber-500" />
+          <span className="text-xs text-foreground font-medium">4.9</span>
+          <span className="text-[10px] text-muted-foreground ml-2">{stats.totalServices + stats.totalProducts} itens mês</span>
         </div>
       </div>
 
-      <div className="space-y-4 relative z-10 flex-1">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-2 sm:gap-0">
-          <div>
-            <p className="text-[9px] sm:text-[10px] font-black text-muted-foreground uppercase tracking-widest">Pendente</p>
-            <p className="text-xl sm:text-2xl font-black tracking-tight text-rose-500 tabular-nums">
-              R$ {stats.pendingCommission.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-            </p>
-          </div>
-          <div className="sm:text-right">
-            <p className="text-[9px] sm:text-[10px] font-black text-muted-foreground uppercase tracking-widest">Total</p>
-            <p className="text-xs sm:text-sm font-bold text-foreground tabular-nums">
-              R$ {stats.totalCommission.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-            </p>
-          </div>
+      <div className="mt-auto space-y-4">
+        <div className="flex justify-between items-center text-xs">
+          <span className="text-muted-foreground">Pendente:</span>
+          {isLiquidated ? (
+            <span className="text-primary font-bold">Liquidado</span>
+          ) : (
+            <span className="text-destructive font-bold">{formatCurrency(stats.pendingCommission)}</span>
+          )}
         </div>
-
-        <div className="space-y-1.5">
-          <div className="flex justify-between text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
-            <span>Pagamento</span>
-            <span>{performanceRate.toFixed(0)}%</span>
-          </div>
-          <div className="h-1.5 sm:h-2 bg-muted rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-primary transition-all duration-1000 shadow-[0_0_8px_rgba(var(--primary),0.5)]"
-              style={{ width: `${performanceRate}%` }}
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-4 sm:mt-6 grid grid-cols-2 gap-2 sm:gap-3 relative z-10">
-          <Button 
-            variant="outline" 
-            className="rounded-xl h-11 sm:h-10 font-black text-[9px] uppercase tracking-widest border-border/50 hover:bg-muted"
+        <div className="flex gap-2">
+          <button 
+            className="flex-1 py-2 rounded-lg bg-muted border border-border/50 text-foreground text-xs font-bold hover:bg-muted/80 transition-colors"
             onClick={() => onViewDetails(stats.barberId)}
           >
-              Detalhes
-          </Button>
-          <Button 
-            className="rounded-xl h-11 sm:h-10 font-black text-[9px] uppercase tracking-widest bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20 border-0"
-            disabled={stats.pendingCommission <= 0}
+            Detalhes
+          </button>
+          <button 
+            className="flex-1 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 transition-opacity disabled:opacity-50"
+            disabled={isLiquidated}
             onClick={() => onLiquidate(stats.barberId)}
           >
-              Pagar
-          </Button>
+            Pagar
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -116,29 +88,61 @@ interface BarberPerformanceProps {
 }
 
 export function BarberPerformance({ stats, onViewDetails, onLiquidate }: BarberPerformanceProps) {
+  const swiperRef = useRef<SwiperType | null>(null)
+
   return (
-    <div className="space-y-4 sm:space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
-        <div className="flex items-center gap-3">
-          <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center">
-            <TrendingUp className="size-4 text-primary" />
-          </div>
-          <h2 className="text-lg sm:text-xl font-black tracking-tight">Desempenho por Barbeiro</h2>
+    <section className="mb-12">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">
+          <span className="w-1.5 h-6 bg-primary rounded-full"></span>
+          Performance da Equipe
+        </h2>
+        <div className="flex gap-2">
+          <button 
+            className="w-8 h-8 rounded-full flex items-center justify-center bg-card border border-border/50 hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+            onClick={() => swiperRef.current?.slidePrev()}
+          >
+            <ChevronLeft className="size-4" />
+          </button>
+          <button 
+            className="w-8 h-8 rounded-full flex items-center justify-center bg-card border border-border/50 hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+            onClick={() => swiperRef.current?.slideNext()}
+          >
+            <ChevronRight className="size-4" />
+          </button>
         </div>
-        <p className="text-[10px] font-black text-muted-foreground bg-muted px-3 py-1.5 rounded-full w-fit uppercase tracking-widest">
-            {stats.length} Barbeiros
-        </p>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+
+      <Swiper
+        modules={[Navigation]}
+        spaceBetween={24}
+        slidesPerView={1}
+        onBeforeInit={(swiper) => {
+          swiperRef.current = swiper
+        }}
+        breakpoints={{
+          640: {
+            slidesPerView: 2,
+          },
+          1024: {
+            slidesPerView: 3,
+          },
+          1280: {
+            slidesPerView: 4,
+          },
+        }}
+        className="w-full !pb-4"
+      >
         {stats.map((barber) => (
-          <BarberPerformanceCard 
-            key={barber.barberId} 
-            stats={barber} 
-            onViewDetails={onViewDetails}
-            onLiquidate={onLiquidate}
-          />
+          <SwiperSlide key={barber.barberId} className="h-auto">
+            <BarberPerformanceCard 
+              stats={barber} 
+              onViewDetails={onViewDetails}
+              onLiquidate={onLiquidate}
+            />
+          </SwiperSlide>
         ))}
-      </div>
-    </div>
+      </Swiper>
+    </section>
   )
 }

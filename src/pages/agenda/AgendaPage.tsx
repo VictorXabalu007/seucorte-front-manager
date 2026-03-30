@@ -22,6 +22,7 @@ import { AppointmentTable } from "./components/AppointmentTable"
 import { AppointmentCreateSheet } from "./components/AppointmentCreateSheet"
 import { AppointmentEditSheet } from "./components/AppointmentEditSheet"
 import { AppointmentDeleteAlert } from "./components/AppointmentDeleteAlert"
+import { CheckoutSheet } from "./components/CheckoutSheet"
 
 const ITEMS_PER_PAGE = 8
 
@@ -55,6 +56,10 @@ export default function AgendaPage() {
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null)
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const [deletingAppointment, setDeletingAppointment] = useState<Appointment | null>(null)
+
+  // Checkout PDV state
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
+  const [checkoutAppointment, setCheckoutAppointment] = useState<Appointment | null>(null)
 
   const fetchData = useCallback(async () => {
     if (!unidadeId) {
@@ -162,6 +167,7 @@ export default function AgendaPage() {
         paymentStatus: data.paymentStatus,
         amount: Number(data.amount),
         notes: data.notes,
+        clienteId: data.clientId || undefined,
       } as any)
       await fetchData()
       setIsEditOpen(false)
@@ -194,6 +200,7 @@ export default function AgendaPage() {
         paymentStatus: data.paymentStatus,
         amount: Number(data.amount),
         notes: data.notes,
+        clienteId: data.clientId || undefined,
         unidadeId,
       } as any)
       await fetchData()
@@ -224,6 +231,45 @@ export default function AgendaPage() {
       toast.error("Erro ao excluir agendamento")
     } finally {
       setGlobalLoading(false)
+    }
+  }
+
+  const handleCheckoutClick = (a: Appointment) => {
+    setCheckoutAppointment(a)
+    setIsCheckoutOpen(true)
+  }
+
+  const handleCheckoutConfirm = async (data: any) => {
+    if (!checkoutAppointment) return
+    setGlobalLoading(true)
+    try {
+      await agendaService.updateAppointment(checkoutAppointment.id, data)
+      await fetchData()
+      setIsCheckoutOpen(false)
+      setCheckoutAppointment(null)
+      toast.success("Atendimento concluído e pago com sucesso!")
+    } catch {
+      toast.error("Erro ao processar o checkout do atendimento")
+    } finally {
+      setGlobalLoading(false)
+    }
+  }
+
+  const handleUpdateAppointmentServices = async (id: string, servicos: any[]) => {
+    try {
+      const updatedAppointment = await agendaService.updateAppointment(id, { servicos }) as Appointment
+      
+      // Atualizamos os dados locais
+      setAppointments(prev => prev.map(a => a.id === id ? updatedAppointment : a))
+      
+      // Também atualizamos o `checkoutAppointment` para que o sheet reflita os novos dados
+      setCheckoutAppointment(updatedAppointment)
+      
+      // Opcional: recarregar tudo para garantir contadores e paginação corretos
+      fetchData()
+    } catch (error) {
+      console.error(error)
+      throw error
     }
   }
 
@@ -314,6 +360,7 @@ export default function AgendaPage() {
             setCurrentPage={setCurrentPage}
             onEdit={handleEdit}
             onDelete={handleDeleteClick}
+            onCheckout={handleCheckoutClick}
           />
         )}
       </div>
@@ -323,17 +370,26 @@ export default function AgendaPage() {
         isOpen={isCreateOpen} onOpenChange={setIsCreateOpen}
         onSave={handleSaveCreate}
         professionals={professionals} services={services}
+        unidadeId={unidadeId}
       />
       <AppointmentEditSheet
         isOpen={isEditOpen} onOpenChange={setIsEditOpen}
         appointment={editingAppointment}
         onSave={handleSaveEdit}
         professionals={professionals} services={services}
+        unidadeId={unidadeId}
       />
       <AppointmentDeleteAlert
         isOpen={isDeleteOpen} onOpenChange={setIsDeleteOpen}
         appointment={deletingAppointment}
         onConfirm={handleConfirmDelete}
+      />
+      <CheckoutSheet
+        isOpen={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}
+        appointment={checkoutAppointment}
+        services={services}
+        onCheckout={handleCheckoutConfirm}
+        onUpdateServices={handleUpdateAppointmentServices}
       />
     </AdminLayout>
   )

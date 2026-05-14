@@ -92,6 +92,7 @@ export function CashFlowTable({ transactions }: CashFlowTableProps) {
             <TableRow className="border-border/50 hover:bg-transparent">
               <TableHead className="py-6 px-8 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Data & Hora</TableHead>
               <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Tipo / Categoria</TableHead>
+              <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Origem</TableHead>
               <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Descrição</TableHead>
               <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Pagamento</TableHead>
               <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 text-right">Valor</TableHead>
@@ -117,31 +118,36 @@ export function CashFlowTable({ transactions }: CashFlowTableProps) {
                   <div className="flex flex-col gap-1.5 whitespace-nowrap">
                     <div className={cn(
                         "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border self-start",
-                        tx.type === "INCOME" 
+                        tx.tipo === "ENTRADA" 
                         ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" 
                         : "bg-rose-500/10 text-rose-500 border-rose-500/20"
                     )}>
-                        {tx.type === "INCOME" ? <ArrowUpCircle className="size-2.5" /> : <ArrowDownCircle className="size-2.5" />}
-                        {tx.type === "INCOME" ? "Entrada" : "Saída"}
+                        {tx.tipo === "ENTRADA" ? <ArrowUpCircle className="size-2.5" /> : <ArrowDownCircle className="size-2.5" />}
+                        {tx.tipo === "ENTRADA" ? "Entrada" : "Saída"}
                     </div>
-                    <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest ml-1">{getCategoryLabel(tx.category)}</span>
+                    <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest ml-1">{getCategoryLabel(tx.categoria)}</span>
                   </div>
                 </TableCell>
                 <TableCell>
-                  <p className="text-sm font-bold text-foreground max-w-[200px] truncate">{tx.description}</p>
+                  <Badge variant="secondary" className="text-[9px] font-black uppercase tracking-widest">
+                    {tx.origem}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <p className="text-sm font-bold text-foreground max-w-[200px] truncate">{tx.descricao}</p>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/30 rounded-lg border border-border/30 w-fit whitespace-nowrap">
-                    {getPaymentIcon(tx.paymentMethod)}
-                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{tx.paymentMethod}</span>
+                    {getPaymentIcon(tx.paymentMethod as PaymentMethod)}
+                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{tx.paymentMethod || 'N/A'}</span>
                   </div>
                 </TableCell>
                 <TableCell className="text-right">
                   <p className={cn(
                     "text-sm font-black tabular-nums whitespace-nowrap",
-                    tx.type === "INCOME" ? "text-emerald-500" : "text-rose-500"
+                    tx.tipo === "ENTRADA" ? "text-emerald-500" : "text-rose-500"
                   )}>
-                    {tx.type === "INCOME" ? "+" : "-"} R$ {tx.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    {tx.tipo === "ENTRADA" ? "+" : "-"} R$ {Number(tx.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </p>
                 </TableCell>
                 <TableCell className="text-right px-8">
@@ -168,21 +174,24 @@ export function CashFlowTable({ transactions }: CashFlowTableProps) {
               <div className="flex flex-col gap-1">
                 <div className={cn(
                     "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border self-start",
-                    tx.type === "INCOME" 
+                    tx.tipo === "ENTRADA" 
                     ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" 
                     : "bg-rose-500/10 text-rose-500 border-rose-500/20"
                 )}>
-                    {tx.type === "INCOME" ? "Entrada" : "Saída"}
+                    {tx.tipo === "ENTRADA" ? "Entrada" : "Saída"}
                 </div>
-                <p className="text-xs font-black tracking-tight mt-1">{tx.description}</p>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{getCategoryLabel(tx.category)}</p>
+                <p className="text-xs font-black tracking-tight mt-1">{tx.descricao}</p>
+                <div className="flex gap-2 items-center">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{getCategoryLabel(tx.categoria)}</p>
+                    <Badge variant="secondary" className="text-[8px] px-1 py-0">{tx.origem}</Badge>
+                </div>
               </div>
               <div className="text-right">
                 <p className={cn(
                     "text-sm font-black tabular-nums",
-                    tx.type === "INCOME" ? "text-emerald-500" : "text-rose-500"
+                    tx.tipo === "ENTRADA" ? "text-emerald-500" : "text-rose-500"
                 )}>
-                  {tx.type === "INCOME" ? "+" : "-"} R$ {tx.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  {tx.tipo === "ENTRADA" ? "+" : "-"} R$ {Number(tx.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </p>
                 <div className="flex items-center justify-end gap-1.5 mt-1">
                     <Clock className="size-3 text-muted-foreground/50" />
@@ -198,8 +207,8 @@ export function CashFlowTable({ transactions }: CashFlowTableProps) {
                       <span className="text-[10px] font-bold text-foreground">{format(new Date(tx.date), "dd MMM", { locale: ptBR })}</span>
                   </div>
                   <div className="flex items-center gap-1.5 px-2 py-1 bg-muted/40 rounded-lg">
-                      {getPaymentIcon(tx.paymentMethod)}
-                      <span className="text-[9px] font-black uppercase text-muted-foreground">{tx.paymentMethod}</span>
+                      {getPaymentIcon(tx.paymentMethod as PaymentMethod)}
+                      <span className="text-[9px] font-black uppercase text-muted-foreground">{tx.paymentMethod || 'N/A'}</span>
                   </div>
               </div>
               <div className="flex gap-1">

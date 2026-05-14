@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react"
-import { Check, X, Plus, Trash2, DollarSign, CreditCard, ShoppingCart, Ticket, Info, Loader2, RefreshCw } from "lucide-react"
+import { Check, X, Plus, Trash2, DollarSign, CreditCard, ShoppingCart, Ticket, Info, Loader2, RefreshCw, Package } from "lucide-react"
 
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter, SheetClose,
@@ -13,6 +13,7 @@ import { MoneyInput } from "@/components/ui/money-input"
 import type { Appointment, Service } from "../types"
 import { cn } from "@/lib/utils"
 import { ServicePickerModal } from "./ServicePickerModal"
+import { ProductPickerModal } from "./ProductPickerModal"
 import { toast } from "sonner"
 
 interface CartItem {
@@ -23,29 +24,42 @@ interface CartItem {
   isPlano: boolean
 }
 
+interface ProductCartItem {
+  produtoId: string
+  name: string
+  quantity: number
+  priceCharged: number
+  stock: number
+}
+
 interface CheckoutSheetProps {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
   appointment: Appointment | null
   services: Service[]
+  products?: any[]
   onCheckout: (data: {
     status: 'COMPLETED'
     paymentStatus: 'PAID' | 'PENDING' | 'REFUNDED'
     amount: number
     servicos: { serviceId: string; price: number; isPlano: boolean }[]
+    produtos: { produtoId: string; quantity: number; priceCharged: number }[]
     assinaturaId?: string | null
   }) => Promise<void>
   onUpdateServices: (id: string, servicos: any[]) => Promise<void>
+  onUpdateProducts: (id: string, produtos: any[]) => Promise<void>
 }
 
 export function CheckoutSheet({
-  isOpen, onOpenChange, appointment, services, onCheckout, onUpdateServices,
+  isOpen, onOpenChange, appointment, services, products = [], onCheckout, onUpdateServices, onUpdateProducts,
 }: CheckoutSheetProps) {
   const [cart, setCart] = useState<CartItem[]>([])
+  const [productCart, setProductCart] = useState<ProductCartItem[]>([])
   const [paymentStatus, setPaymentStatus] = useState<'PAID' | 'PENDING' | 'REFUNDED'>("PAID")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
   const [isPickerOpen, setIsPickerOpen] = useState(false)
+  const [isProductPickerOpen, setIsProductPickerOpen] = useState(false)
 
   // Get active subscription
   const activeAssinatura = useMemo(() => {
@@ -96,15 +110,31 @@ export function CheckoutSheet({
             setCart([])
           }
         }
-        setPaymentStatus(appointment.paymentStatus === "PENDING" ? "PAID" : appointment.paymentStatus)
       }
+      
+      // Inicializa productCart a partir dos produtos já salvos no agendamento
+      if (productCart.length === 0 && appointment.produtos && appointment.produtos.length > 0) {
+        setProductCart(
+          appointment.produtos.map((p: any) => ({
+            produtoId: p.produtoId,
+            name: p.produto?.name || 'Produto',
+            quantity: p.quantity,
+            priceCharged: Number(p.priceCharged),
+            stock: p.produto?.stock ?? 0,
+          }))
+        )
+      }
+      setPaymentStatus(appointment.paymentStatus === "PENDING" ? "PAID" : appointment.paymentStatus)
     } else {
       setCart([])
+      setProductCart([])
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, appointment?.id]) // Rodar apenas quando abrir ou mudar o ID do agendamento
+  }, [isOpen, appointment?.id])
 
-  const totalAmount = useMemo(() => cart.reduce((acc, item) => acc + item.price, 0), [cart])
+  const servicesTotal = useMemo(() => cart.reduce((acc, item) => acc + item.price, 0), [cart])
+  const productsTotal = useMemo(() => productCart.reduce((acc, item) => acc + item.priceCharged * item.quantity, 0), [productCart])
+  const totalAmount = servicesTotal + productsTotal
 
   const handleConfirmSelection = async (selectedServices: Service[]) => {
     if (!appointment) return
@@ -171,6 +201,53 @@ export function CheckoutSheet({
     }
   }
 
+  const handleConfirmProducts = async (selected: any[]) => {
+    if (!appointment) return
+    setIsUpdating(true)
+    try {
+      const newProductCart: ProductCartItem[] = selected.map(s => ({
+        produtoId: s.product.id,
+        name: s.product.name,
+        quantity: Number(s.quantity),
+        priceCharged: Number(s.priceCharged),
+        stock: s.product.stock,
+      }))
+
+      const payload = newProductCart.map(p => ({
+        produtoId: p.produtoId,
+        quantity: p.quantity,
+        priceCharged: p.priceCharged,
+      }))
+
+      await onUpdateProducts(appointment.id, payload)
+      setProductCart(newProductCart)
+      toast.success("Produtos atualizados!")
+    } catch {
+      toast.error("Erro ao sincronizar produtos")
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
+  const handleRemoveProduct = async (produtoId: string) => {
+    if (!appointment) return
+    setIsUpdating(true)
+    try {
+      const remaining = productCart.filter(p => p.produtoId !== produtoId)
+      const payload = remaining.map(p => ({
+        produtoId: p.produtoId,
+        quantity: p.quantity,
+        priceCharged: p.priceCharged,
+      }))
+      await onUpdateProducts(appointment.id, payload)
+      setProductCart(remaining)
+    } catch {
+      toast.error("Erro ao remover produto")
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
   const handlePriceChange = (id: string, newPrice: number) => {
     setCart(prev => prev.map(item => item.id === id ? { ...item, price: newPrice } : item))
   }
@@ -187,6 +264,11 @@ export function CheckoutSheet({
           serviceId: c.serviceId,
           price: c.price,
           isPlano: c.isPlano,
+        })),
+        produtos: productCart.map(p => ({
+          produtoId: p.produtoId,
+          quantity: p.quantity,
+          priceCharged: p.priceCharged,
         })),
         assinaturaId: cart.some(c => c.isPlano) ? activeAssinatura?.id : null,
       })
@@ -303,11 +385,70 @@ export function CheckoutSheet({
               </div>
             </div>
           )}
+
+          {/* Produtos Vendidos */}
+          <div className="flex items-center justify-between mt-2">
+            <div className="flex items-center gap-2">
+              <Package className="size-3.5 text-amber-500" />
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Produtos Vendidos</p>
+              {productCart.length > 0 && (
+                <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600">{productCart.length}</span>
+              )}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsProductPickerOpen(true)}
+              className="h-7 text-xs font-bold text-amber-600 hover:bg-amber-500/10 border-none px-2 rounded-lg"
+            >
+              <Plus className="size-3 mr-1" /> Adicionar Produtos
+            </Button>
+          </div>
+
+          {productCart.length > 0 && (
+            <div className="space-y-2">
+              {productCart.map(item => (
+                <div key={item.produtoId} className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-3 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="size-7 rounded-lg bg-amber-500/20 flex items-center justify-center shrink-0">
+                      <Package className="size-3.5 text-amber-600" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold truncate">{item.name}</p>
+                      <p className="text-[10px] text-muted-foreground">{item.quantity}x · R$ {Number(item.priceCharged).toFixed(2)} cada</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-sm font-black text-amber-600">
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.priceCharged * item.quantity)}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-6 hover:bg-rose-500/10 hover:text-rose-500"
+                      onClick={() => handleRemoveProduct(item.produtoId)}
+                    >
+                      <Trash2 className="size-3" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="mt-auto pt-6 border-t border-border space-y-4 pb-2">
-          {/* Valor Total */}
+          {/* Resumo */}
           <div className="flex flex-col gap-1 items-end">
+            {productCart.length > 0 && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span>Serviços:</span>
+                <span className="font-bold">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(servicesTotal)}</span>
+                <span className="text-muted-foreground/40">+</span>
+                <span>Produtos:</span>
+                <span className="font-bold text-amber-600">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(productsTotal)}</span>
+              </div>
+            )}
             <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">Total a Pagar</p>
             <p className="text-3xl font-black text-emerald-500 tracking-tight">
               {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(totalAmount)}
@@ -335,6 +476,14 @@ export function CheckoutSheet({
         services={services}
         alreadySelectedIds={cart.map(i => i.serviceId).filter(Boolean)}
         onConfirm={handleConfirmSelection}
+      />
+
+      <ProductPickerModal
+        isOpen={isProductPickerOpen}
+        onOpenChange={setIsProductPickerOpen}
+        products={products}
+        currentProducts={productCart.map(p => ({ produtoId: p.produtoId, quantity: p.quantity, priceCharged: p.priceCharged }))}
+        onConfirm={handleConfirmProducts}
       />
     </Sheet>
   )

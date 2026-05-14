@@ -60,6 +60,11 @@ class PlanoService {
     const response = await api.patch(`/planos/assinaturas/${id}/cancel`)
     return response.data
   }
+
+  async deleteFatura(id: string) {
+    const response = await api.delete(`/planos/faturas/${id}`)
+    return response.data
+  }
 }
 
 export const planoService = new PlanoService()

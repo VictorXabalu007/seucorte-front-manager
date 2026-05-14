@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/form"
 
 import { authService } from "@/services/auth"
+import { useAuth } from "@/contexts/auth-context"
 
 const loginSchema = z.object({
   email: z.string().email("E-mail inválido"),
@@ -27,6 +28,7 @@ type LoginFormData = z.infer<typeof loginSchema>
 
 export default function LoginPage() {
   const navigate = useNavigate()
+  const { login } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
 
@@ -43,15 +45,22 @@ export default function LoginPage() {
     try {
       const response = await authService.login(data)
       
-      // Armazena tokens no localStorage (usando as funções do lib/auth)
+      // Armazena tokens
       localStorage.setItem("@SeuCorte:token", response.accessToken)
       localStorage.setItem("@SeuCorte:refreshToken", response.refreshToken)
-      localStorage.setItem("@SeuCorte:user", JSON.stringify(response.user))
+      
+      // Atualiza o contexto
+      login(response.user)
       
       if (response.user.forcePasswordChange) {
         navigate("/primeiro-acesso")
       } else {
-        navigate("/estoque")
+        // Redirecionamento inteligente baseado no role
+        if (response.user.role === 'BARBER') {
+          navigate("/agenda") // Barbeiros costumam ir direto para a agenda
+        } else {
+          navigate("/dashboard") // Donos costumam ir para o dashboard
+        }
       }
     } catch (error: any) {
       if (error.response?.status === 403) {
@@ -133,7 +142,7 @@ export default function LoginPage() {
                           to="/forgot-password"
                           className="text-[10px] font-black uppercase tracking-widest text-primary hover:text-primary/80 transition-colors"
                         >
-                          Esqueceu?
+                          Esqueci a senha
                         </Link>
                       </div>
                       <FormControl>
@@ -181,7 +190,7 @@ export default function LoginPage() {
             <p className="text-xs font-bold text-muted-foreground">
               Não tem uma conta?{" "}
               <Link to="/register" className="text-primary hover:underline decoration-2 underline-offset-4">
-                Criar Unidade
+                Criar Conta
               </Link>
             </p>
           </div>
@@ -190,14 +199,12 @@ export default function LoginPage() {
         {/* Footer info */}
         <div className="mt-8 text-center space-y-2 opacity-40 hover:opacity-100 transition-opacity duration-500">
           <p className="text-[10px] font-black text-white uppercase tracking-[0.2em]">
-            Premium Management for Barbers
+            Gestão Premium para Barbearias
           </p>
           <div className="flex justify-center gap-4 text-[10px] font-bold text-muted-foreground uppercase">
             <span>Privacidade</span>
             <span className="size-1 bg-white/20 rounded-full mt-1" />
             <span>Suporte</span>
-            <span className="size-1 bg-white/20 rounded-full mt-1" />
-            <span>v1.0.4</span>
           </div>
         </div>
       </div>

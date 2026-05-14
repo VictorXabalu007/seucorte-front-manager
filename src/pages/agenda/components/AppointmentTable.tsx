@@ -1,4 +1,4 @@
-import { Edit2, Trash2, Phone, ChevronLeft, ChevronRight, ShoppingCart } from "lucide-react"
+import { Edit2, Trash2, Phone, ChevronLeft, ChevronRight, ShoppingCart, Crown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -51,7 +51,14 @@ export function AppointmentTable({
                           {a.initials}
                         </div>
                         <div>
-                          <p className="text-sm font-bold text-foreground line-clamp-1">{a.clientName}</p>
+                          <p className="text-sm font-bold text-foreground line-clamp-1 flex items-center gap-1.5">
+                            {a.clientName}
+                            {a.hasActivePlan && (
+                              <span title={`Assinante: ${a.planName || "Plano Ativo"}`} className="flex items-center">
+                                <Crown className="size-3.5 text-amber-500 fill-amber-500 drop-shadow-sm" />
+                              </span>
+                            )}
+                          </p>
                           {a.clientPhone && (
                             <p className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
                               <Phone className="size-2.5" />{a.clientPhone}
@@ -140,7 +147,14 @@ export function AppointmentTable({
                     {a.initials}
                   </div>
                   <div>
-                    <p className="text-sm font-black tracking-tight">{a.clientName}</p>
+                    <p className="text-sm font-black tracking-tight flex items-center gap-1.5">
+                      {a.clientName}
+                      {a.hasActivePlan && (
+                        <span title={`Assinante: ${a.planName || "Plano Ativo"}`} className="flex items-center">
+                          <Crown className="size-3.5 text-amber-500 fill-amber-500 drop-shadow-sm" />
+                        </span>
+                      )}
+                    </p>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="size-2 rounded-full" style={{ backgroundColor: getProfColor(a.professionalId) }} />
                       <span className="text-[10px] font-bold text-muted-foreground uppercase">{a.professionalName}</span>

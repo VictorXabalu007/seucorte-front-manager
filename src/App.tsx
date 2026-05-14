@@ -14,7 +14,6 @@ import ClienteProfilePage from "./pages/clientes/ClienteProfilePage"
 import FinanceiroPage from "./pages/financeiro/FinanceiroPage"
 import ComissaoPage from "./pages/comissao/ComissaoPage"
 import MetasPage from "./pages/metas/MetasPage"
-import UnidadesPage from "./pages/unidades/UnidadesPage"
 import ServicesPage from "./pages/servicos/ServicesPage"
 import CombosPage from "./pages/combos/CombosPage"
 import PlanosPage from "./pages/planos/PlanosPage"
@@ -36,12 +35,15 @@ import SettingsPage from "./pages/settings/SettingsPage"
 import { Toaster } from "sonner"
 import { ThemeProvider } from "./components/theme-provider"
 import { LoadingProvider } from "./components/loading-provider"
+import { AuthProvider } from "./contexts/auth-context"
 
 function App() {
   return (
     <ThemeProvider defaultTheme="dark" storageKey="barberflow-ui-theme">
       <Toaster position="top-right" expand={false} richColors closeButton />
-      <LoadingProvider>
+      <AuthProvider>
+        <LoadingProvider>
+
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Navigate to="/login" replace />} />
@@ -66,7 +68,7 @@ function App() {
             <Route path="/financeiro" element={<FinanceiroPage />} />
             <Route path="/comissao" element={<ComissaoPage />} />
             <Route path="/metas" element={<MetasPage />} />
-            <Route path="/unidades" element={<UnidadesPage />} />
+            {/* <Route path="/unidades" element={<UnidadesPage />} /> */}
             <Route path="/planos" element={<PlanosPage />} />
             <Route path="/planos/novo" element={<PlanoFormPage />} />
             <Route path="/planos/:id/editar" element={<PlanoFormPage />} />
@@ -76,8 +78,9 @@ function App() {
           </Routes>
         </BrowserRouter>
       </LoadingProvider>
-    </ThemeProvider>
-  )
+    </AuthProvider>
+  </ThemeProvider>
+)
 }
 
 export default App

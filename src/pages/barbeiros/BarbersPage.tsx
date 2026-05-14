@@ -78,14 +78,12 @@ export default function BarbersPage() {
   }
 
   const handleDelete = async (id: string) => {
-    if (confirm("Tem certeza que deseja remover este barbeiro?")) {
-      try {
-        await barbersService.deleteBarber(id)
-        toast.success("Barbeiro removido com sucesso!")
-        fetchData()
-      } catch {
-        toast.error("Erro ao remover barbeiro")
-      }
+    try {
+      await barbersService.deleteBarber(id)
+      toast.success("Barbeiro inativado com sucesso!")
+      fetchData()
+    } catch {
+      toast.error("Erro ao inativar barbeiro")
     }
   }
 

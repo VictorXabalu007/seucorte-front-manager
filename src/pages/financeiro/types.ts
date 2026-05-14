@@ -1,7 +1,11 @@
-export type TransactionType = 'INCOME' | 'EXPENSE';
+export type TransactionType = 'ENTRADA' | 'SAIDA';
+export type TransactionOrigem = 'AGENDAMENTO' | 'PRODUTO_VENDA' | 'ASSINATURA' | 'COMISSAO' | 'RESTOCK' | 'MANUAL';
+
 export type TransactionCategory = 
   | 'SERVICE' 
   | 'PRODUCT' 
+  | 'SUBSCRIPTION'
+  | 'COMMISSION'
   | 'RENT' 
   | 'UTILITIES' 
   | 'SUPPLIES' 
@@ -14,18 +18,22 @@ export type PaymentMethod = 'CASH' | 'CREDIT_CARD' | 'DEBIT_CARD' | 'PIX' | 'TRA
 export interface FinancialTransaction {
   id: string;
   date: string;
-  type: TransactionType;
-  category: TransactionCategory;
-  description: string;
-  value: number;
-  paymentMethod: PaymentMethod;
-  status: 'COMPLETED' | 'PENDING' | 'CANCELLED';
+  tipo: TransactionType;
+  origem: TransactionOrigem;
+  categoria: TransactionCategory;
+  descricao: string;
+  valor: number;
+  paymentMethod?: PaymentMethod;
+  agendamentoId?: string;
+  comissaoId?: string;
+  produtoEstoqueId?: string;
+  assinaturaFaturaId?: string;
 }
 
 export interface FinancialSummary {
   totalIn: number;
   totalOut: number;
   netBalance: number;
-  projectedRevenue: number;
   profitMargin: number;
+  totalTransactions: number;
 }

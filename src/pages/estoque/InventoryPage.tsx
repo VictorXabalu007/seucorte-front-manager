@@ -138,12 +138,17 @@ export default function InventoryPage() {
   const handleConfirmDelete = async () => {
     if (!itemToDelete) return
     
-    // In a real app, call service here
-    console.log("Deleting item:", itemToDelete.id)
-    
-    setItems(prev => prev.filter(i => i.id !== itemToDelete.id))
-    setIsDeleteModalOpen(false)
-    setItemToDelete(null)
+    try {
+      await inventoryService.deleteItem(itemToDelete.id)
+      toast.success("Produto inativado com sucesso!")
+      loadData() // Recarrega os dados e estatísticas
+    } catch (error) {
+      console.error("Failed to delete item:", error)
+      toast.error("Erro ao inativar produto")
+    } finally {
+      setIsDeleteModalOpen(false)
+      setItemToDelete(null)
+    }
   }
   return (
     <AdminLayout>
@@ -440,19 +445,16 @@ export default function InventoryPage() {
         item={editingItem}
         onSave={async (data: InventoryFormData) => {
             try {
-                // Get unidadeId from context or local storage
-                const unidadeId = localStorage.getItem("unidadeId") || ""
-                
-                const payload = {
-        ...data,
-        salePrice: data.salePrice,
-        costPrice: data.costPrice,
-        stock: Number(data.stock),
-        minStock: Number(data.minStock),
-        unidadeId: getActiveUnidadeId() || ""
-      } as any
+                const payload: any = {
+                    ...data,
+                    stock: Number(data.stock),
+                    minStock: Number(data.minStock),
+                    unidadeId: getActiveUnidadeId() || ""
+                }
 
                 if (editingItem) {
+                    // Remover stock do payload ao editar para não sobrescrever com o valor padrão do formulário
+                    delete payload.stock
                     await inventoryService.updateItem(editingItem.id, payload)
                     toast.success("Produto atualizado com sucesso!")
                 } else {
@@ -462,6 +464,7 @@ export default function InventoryPage() {
                 setIsSheetOpen(false)
                 loadData()
             } catch (error) {
+                console.error("Failed to save product:", error)
                 toast.error("Erro ao salvar produto")
             }
         }}

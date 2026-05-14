@@ -16,6 +16,8 @@ export interface Appointment {
   amount: number
   notes?: string
   initials: string
+  hasActivePlan?: boolean
+  planName?: string
   cliente?: {
     id: string
     assinaturas: Array<{
@@ -38,6 +40,17 @@ export interface Appointment {
       id: string
       name: string
       duration: number
+    }
+  }[]
+  produtos?: {
+    id: string
+    produtoId: string
+    quantity: number
+    priceCharged: number
+    produto?: {
+      id: string
+      name: string
+      stock: number
     }
   }[]
 }

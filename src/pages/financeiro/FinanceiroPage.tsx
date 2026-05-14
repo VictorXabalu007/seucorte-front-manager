@@ -11,7 +11,10 @@ import { CashFlowTable } from "./components/CashFlowTable"
 import { TransactionSheet } from "./components/TransactionSheet"
 import { FinancialCharts } from "./components/FinancialCharts"
 import { FinancialDateFilter } from "./components/FinancialDateFilter"
-import { mockTransactions, mockFinancialSummary } from "./mockData"
+import { financeiroService } from "@/services/financeiro.service"
+import { getActiveUnidadeId } from "@/lib/auth"
+import type { FinancialSummary, FinancialTransaction } from "./types"
+import { toast } from "sonner"
 
 export default function FinanceiroPage() {
   const { setIsLoading } = useLoading()
@@ -24,22 +27,55 @@ export default function FinanceiroPage() {
     to: endOfMonth(new Date()),
   })
 
-  // Mock data calculations based on filter
-  const isFiltered = dateFilter === "custom"
-  const currentSummary = isFiltered ? {
-    ...mockFinancialSummary,
-    totalIn: mockFinancialSummary.totalIn * 0.8,
-    totalOut: mockFinancialSummary.totalOut * 1.1,
-    netBalance: (mockFinancialSummary.totalIn * 0.8) - (mockFinancialSummary.totalOut * 1.1)
-  } : mockFinancialSummary
+  const [transactions, setTransactions] = useState<FinancialTransaction[]>([])
+  const [summary, setSummary] = useState<FinancialSummary>({
+    totalIn: 0,
+    totalOut: 0,
+    netBalance: 0,
+    profitMargin: 0,
+    totalTransactions: 0
+  })
+
+  const loadData = async () => {
+    setIsLoading(true)
+    try {
+      const unidadeId = getActiveUnidadeId()
+      if (!unidadeId) return
+
+      let fromStr, toStr
+      if (dateRange?.from) fromStr = dateRange.from.toISOString()
+      if (dateRange?.to) toStr = dateRange.to.toISOString()
+
+      const [summaryData, txData] = await Promise.all([
+        financeiroService.getSummary(unidadeId, fromStr, toStr),
+        financeiroService.getTransactions({ unidadeId, dateFrom: fromStr, dateTo: toStr, limit: 100 })
+      ])
+
+      setSummary(summaryData)
+      setTransactions(txData.data)
+    } catch (error) {
+      console.error("Failed to load financial data:", error)
+      toast.error("Erro ao carregar dados financeiros")
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   useEffect(() => {
-    setIsLoading(true)
-    const timer = setTimeout(() => {
-        setIsLoading(false)
-    }, 800)
-    return () => clearTimeout(timer)
-  }, [setIsLoading])
+    loadData()
+  }, [dateRange])
+
+  const handleExport = () => {
+    const unidadeId = getActiveUnidadeId()
+    if (!unidadeId) return
+    
+    let fromStr, toStr
+    if (dateRange?.from) fromStr = dateRange.from.toISOString()
+    if (dateRange?.to) toStr = dateRange.to.toISOString()
+    
+    const url = financeiroService.exportCsvUrl(unidadeId, fromStr, toStr)
+    window.open(url, '_blank')
+  }
 
   return (
     <AdminLayout>
@@ -61,7 +97,11 @@ export default function FinanceiroPage() {
                     setDateRange={setDateRange}
                 />
                 <div className="flex items-center gap-2 w-full sm:w-auto">
-                  <Button variant="outline" className="flex-1 sm:flex-none rounded-xl font-black text-[10px] uppercase tracking-widest h-11 px-4 border-border/50 bg-card/40">
+                  <Button 
+                      variant="outline" 
+                      onClick={handleExport}
+                      className="flex-1 sm:flex-none rounded-xl font-black text-[10px] uppercase tracking-widest h-11 px-4 border-border/50 bg-card/40"
+                  >
                       <Download className="size-4 mr-2" />
                       Exportar
                   </Button>
@@ -76,9 +116,9 @@ export default function FinanceiroPage() {
             </div>
         </div>
 
-        <FinancialKPIs summary={currentSummary} />
+        <FinancialKPIs summary={summary} />
 
-        <FinancialCharts isFiltered={isFiltered} />
+        <FinancialCharts dateRange={dateRange} />
 
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -90,12 +130,13 @@ export default function FinanceiroPage() {
                 </div>
             </div>
 
-            <CashFlowTable transactions={mockTransactions} />
+            <CashFlowTable transactions={transactions} />
         </div>
 
         <TransactionSheet 
             isOpen={isTransactionSheetOpen} 
             onOpenChange={setIsTransactionSheetOpen} 
+            onSave={loadData}
         />
       </div>
     </AdminLayout>

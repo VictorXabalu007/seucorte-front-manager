@@ -8,6 +8,8 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
+import { useAuth } from "@/contexts/auth-context"
+
 interface BottomNavItemProps {
   icon: typeof Calendar
   label: string
@@ -40,17 +42,21 @@ interface BottomNavProps {
 
 export function BottomNav({ onMenuClick }: BottomNavProps) {
   const location = useLocation()
+  const { user } = useAuth()
+  const userRole = user?.role || 'BARBER'
 
   const items = [
-    { icon: Calendar, label: "Agenda", href: "/agenda" },
-    { icon: DollarSign, label: "Financeiro", href: "/financeiro" },
-    { icon: Scissors, label: "Serviços", href: "/servicos" },
-    { icon: Users, label: "Clientes", href: "/clientes" },
+    { icon: Calendar, label: "Agenda", href: "/agenda", roles: ['OWNER', 'BARBER'] },
+    { icon: DollarSign, label: "Financeiro", href: "/financeiro", roles: ['OWNER'] },
+    { icon: Scissors, label: "Serviços", href: "/servicos", roles: ['OWNER'] },
+    { icon: Users, label: "Clientes", href: "/clientes", roles: ['OWNER', 'BARBER'] },
   ]
+
+  const visibleItems = items.filter(item => item.roles.includes(userRole as any))
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 h-16 bg-card border-t border-border flex items-center justify-around z-50 lg:hidden safe-area-pb">
-      {items.map((item) => (
+      {visibleItems.map((item) => (
         <BottomNavItem
           key={item.href}
           icon={item.icon}

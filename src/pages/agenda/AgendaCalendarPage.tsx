@@ -187,20 +187,26 @@ export default function AgendaCalendarPage() {
   }
 
   const handleSaveCreate = async (data: AppointmentFormValues) => {
+    if (!unidadeId) return
     try {
-      const prof = professionals.find(p => p.id === data.professionalId)
-      const svc = services.find(s => s.id === data.serviceId)
+      const dateStr = format(data.dateObj, "yyyy-MM-dd")
+      const startTime = new Date(`${dateStr}T${data.startTime}:00`).toISOString()
+      const endTime = new Date(`${dateStr}T${data.endTime}:00`).toISOString()
+
       await agendaService.createAppointment({
-        clientName: data.clientName, clientPhone: data.clientPhone,
-        professionalId: data.professionalId, professionalName: prof?.name || "",
-        serviceId: data.serviceId, serviceName: svc?.name || "",
-        serviceDuration: svc?.duration || 30,
-        date: format(data.dateObj, "dd MMM, yyyy", { locale: ptBR }),
-        rawDate: data.dateObj,
-        startTime: data.startTime, endTime: data.endTime,
-        status: data.status, paymentStatus: data.paymentStatus,
-        amount: data.amount, notes: data.notes,
-        initials: data.clientName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2),
+        clientName: data.clientName,
+        clientPhone: data.clientPhone,
+        professionalId: data.professionalId,
+        serviceId: data.serviceId,
+        serviceDuration: services.find(s => s.id === data.serviceId)?.duration || 30,
+        startTime,
+        endTime,
+        status: data.status,
+        paymentStatus: data.paymentStatus,
+        amount: Number(data.amount),
+        notes: data.notes,
+        clienteId: data.clientId || undefined,
+        unidadeId,
       })
       await fetchData()
       setIsCreateOpen(false)
@@ -209,18 +215,26 @@ export default function AgendaCalendarPage() {
   }
 
   const handleSaveEdit = async (data: AppointmentFormValues) => {
-    if (!editingAppointment) return
+    if (!editingAppointment || !unidadeId) return
     try {
-      const prof = professionals.find(p => p.id === data.professionalId)
-      const svc = services.find(s => s.id === data.serviceId)
+      const dateStr = format(data.dateObj, "yyyy-MM-dd")
+      const startTime = new Date(`${dateStr}T${data.startTime}:00`).toISOString()
+      const endTime = new Date(`${dateStr}T${data.endTime}:00`).toISOString()
+
       await agendaService.updateAppointment(editingAppointment.id, {
-        ...data,
-        professionalName: prof?.name || "",
-        serviceName: svc?.name || "",
-        serviceDuration: svc?.duration || 30,
-        date: format(data.dateObj, "dd MMM, yyyy", { locale: ptBR }),
-        rawDate: data.dateObj,
-        initials: data.clientName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2),
+        clientName: data.clientName,
+        clientPhone: data.clientPhone,
+        professionalId: data.professionalId,
+        serviceId: data.serviceId,
+        serviceDuration: services.find(s => s.id === data.serviceId)?.duration || 30,
+        startTime,
+        endTime,
+        status: data.status,
+        paymentStatus: data.paymentStatus,
+        amount: Number(data.amount),
+        notes: data.notes,
+        clienteId: data.clientId || undefined,
+        unidadeId,
       })
       await fetchData()
       setIsEditOpen(false)
@@ -617,12 +631,14 @@ export default function AgendaCalendarPage() {
         onSave={handleSaveCreate}
         professionals={professionals} services={services}
         initialData={createInitialData || undefined}
+        unidadeId={unidadeId}
       />
       <AppointmentEditSheet
         isOpen={isEditOpen} onOpenChange={setIsEditOpen}
         appointment={editingAppointment}
         onSave={handleSaveEdit}
         professionals={professionals} services={services}
+        unidadeId={unidadeId}
       />
       <AppointmentDeleteAlert
         isOpen={isDeleteOpen} onOpenChange={setIsDeleteOpen}

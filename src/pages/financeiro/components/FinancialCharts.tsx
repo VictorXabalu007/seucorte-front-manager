@@ -13,26 +13,13 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
-import { MoreHorizontal, TrendingUp } from "lucide-react"
+import { MoreHorizontal, TrendingUp, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { financeiroService } from "@/services/financeiro.service"
+import { getActiveUnidadeId } from "@/lib/auth"
+import type { DateRange } from "react-day-picker"
 
-const barData = [
-  { day: "Seg", entradas: 1200, saidas: 800 },
-  { day: "Ter", entradas: 1500, saidas: 1100 },
-  { day: "Qua", entradas: 1100, saidas: 1400 },
-  { day: "Qui", entradas: 1800, saidas: 950 },
-  { day: "Sex", entradas: 2500, saidas: 1200 },
-  { day: "Sab", entradas: 3200, saidas: 1800 },
-  { day: "Dom", entradas: 800, saidas: 300 },
-]
-
-const donutData = [
-  { category: "Cortes", value: 4500, fill: "#baf91a" },
-  { category: "Barba", value: 2100, fill: "#e2ff99" },
-  { category: "Produtos", value: 1800, fill: "#876dff" },
-  { category: "Insumos", value: 800, fill: "#f43f5e" },
-  { category: "Outros", value: 400, fill: "#94a3b8" },
-]
+// Removed mock data
 
 const barConfig = {
   entradas: {
@@ -71,17 +58,40 @@ const donutConfig = {
   },
 } satisfies ChartConfig
 
-export function FinancialCharts({ isFiltered }: { isFiltered?: boolean }) {
-  const currentBarData = isFiltered ? barData.map(d => ({
-    ...d,
-    entradas: d.entradas * 0.7,
-    saidas: d.saidas * 1.2
-  })) : barData
+export function FinancialCharts({ dateRange }: { dateRange?: DateRange }) {
+  const [currentBarData, setCurrentBarData] = React.useState<any[]>([])
+  const [currentDonutData, setCurrentDonutData] = React.useState<any[]>([])
+  const [isLoading, setIsLoading] = React.useState(false)
 
-  const currentDonutData = isFiltered ? donutData.map(d => ({
-    ...d,
-    value: d.value * (0.8 + Math.random() * 0.4)
-  })) : donutData
+  const loadCharts = async () => {
+    setIsLoading(true)
+    try {
+      const unidadeId = getActiveUnidadeId()
+      if (!unidadeId) return
+
+      let fromStr, toStr
+      if (dateRange?.from) fromStr = dateRange.from.toISOString()
+      if (dateRange?.to) toStr = dateRange.to.toISOString()
+
+      const [barRes, donutRes] = await Promise.all([
+        financeiroService.getCashFlowChart(unidadeId, fromStr, toStr),
+        financeiroService.getBreakdownChart(unidadeId, fromStr, toStr)
+      ])
+
+      setCurrentBarData(barRes)
+      setCurrentDonutData(donutRes)
+    } catch (error) {
+      console.error("Failed to load charts", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  React.useEffect(() => {
+    loadCharts()
+  }, [dateRange])
+
+  const isFiltered = !!(dateRange?.from || dateRange?.to)
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -201,7 +211,7 @@ export function FinancialCharts({ isFiltered }: { isFiltered?: boolean }) {
                 strokeWidth={5}
                 className="stroke-background"
               >
-                 {donutData.map((entry, index) => (
+                 {currentDonutData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.fill} />
                   ))}
               </Pie>
@@ -209,14 +219,16 @@ export function FinancialCharts({ isFiltered }: { isFiltered?: boolean }) {
           </ChartContainer>
           
           <div className="mt-4 space-y-3 pb-8 px-4">
-              {donutData.map((item) => (
+              {currentDonutData.map((item) => (
                   <div key={item.category} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                           <div className="size-2 rounded-full" style={{ backgroundColor: item.fill }} />
                           <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{item.category}</span>
                       </div>
                       <span className="text-xs font-black tabular-nums text-foreground">
-                        {((item.value / currentDonutData.reduce((acc, d) => acc + d.value, 0)) * 100).toFixed(1)}%
+                        {currentDonutData.reduce((acc, d) => acc + d.value, 0) > 0 
+                          ? ((item.value / currentDonutData.reduce((acc, d) => acc + d.value, 0)) * 100).toFixed(1) 
+                          : '0.0'}%
                       </span>
                   </div>
               ))}

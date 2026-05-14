@@ -1,46 +1,51 @@
-import { MoreVertical, User, Edit2, Trash2, Mail, Phone, Award, DollarSign, Percent } from "lucide-react"
+import { useState } from "react"
+import { Edit2, Trash2, Mail, Phone, Award, DollarSign, Percent } from "lucide-react"
 import type { Barber } from "../types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { formatBRL } from "@/lib/utils"
+import { DeleteConfirmationModal } from "@/components/ui/DeleteConfirmationModal" // Note: adjust path if needed, usually @/components/ui/DeleteConfirmationModal
 
 interface BarberCardProps {
   barber: Barber
   onEdit: (barber: Barber) => void
-  onDelete: (id: string) => void
+  onDelete: (id: string) => void | Promise<void>
 }
 
 export function BarberCard({ barber, onEdit, onDelete }: BarberCardProps) {
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+
   return (
-    <Card className="group overflow-hidden bg-card/40 border-border/50 backdrop-blur-sm hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5">
-      <CardHeader className="p-4 pb-0 flex flex-row items-center justify-between space-y-0">
-        <Badge 
-          variant="outline" 
-          className={`${barber.isActive ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : "bg-muted text-muted-foreground border-border"} font-bold px-2 py-0.5 rounded-lg text-[10px] uppercase tracking-wider`}
-        >
-          {barber.isActive ? "Ativo" : "Inativo"}
-        </Badge>
-        <div className="flex items-center gap-0.5">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="size-8 rounded-lg text-muted-foreground hover:text-foreground transition-colors"
-            onClick={() => onEdit(barber)}
+    <>
+      <Card className="group overflow-hidden bg-card/40 border-border/50 backdrop-blur-sm hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5">
+        <CardHeader className="p-4 pb-0 flex flex-row items-center justify-between space-y-0">
+          <Badge 
+            variant="outline" 
+            className={`${barber.isActive ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : "bg-muted text-muted-foreground border-border"} font-bold px-2 py-0.5 rounded-lg text-[10px] uppercase tracking-wider`}
           >
-            <Edit2 className="size-3.5" />
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="size-8 rounded-lg text-muted-foreground hover:text-destructive transition-colors"
-            onClick={() => onDelete(barber.id)}
-          >
-            <Trash2 className="size-3.5" />
-          </Button>
-        </div>
-      </CardHeader>
+            {barber.isActive ? "Ativo" : "Inativo"}
+          </Badge>
+          <div className="flex items-center gap-0.5">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="size-8 rounded-lg text-muted-foreground hover:text-foreground transition-colors"
+              onClick={() => onEdit(barber)}
+            >
+              <Edit2 className="size-3.5" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="size-8 rounded-lg text-muted-foreground hover:text-destructive transition-colors"
+              onClick={() => setIsDeleteModalOpen(true)}
+            >
+              <Trash2 className="size-3.5" />
+            </Button>
+          </div>
+        </CardHeader>
       <CardContent className="p-4 pt-4">
         <div className="flex flex-col items-center text-center">
           <div className="relative mb-3">
@@ -103,5 +108,19 @@ export function BarberCard({ barber, onEdit, onDelete }: BarberCardProps) {
         </div>
       </CardContent>
     </Card>
+
+    <DeleteConfirmationModal
+      isOpen={isDeleteModalOpen}
+      onOpenChange={setIsDeleteModalOpen}
+      onConfirm={() => {
+        onDelete(barber.id)
+        setIsDeleteModalOpen(false)
+      }}
+      title="Inativar Barbeiro"
+      description="Tem certeza que deseja inativar este barbeiro? O histórico de atendimentos e relatórios será preservado, mas ele não aparecerá mais na agenda para novos agendamentos."
+      itemName={barber.name}
+      confirmLabel="Sim, inativar"
+    />
+  </>
   )
 }

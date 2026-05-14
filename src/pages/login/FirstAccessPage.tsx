@@ -18,6 +18,8 @@ import {
 
 import { authService } from "@/services/auth"
 
+import { useAuth } from "@/contexts/auth-context"
+
 const firstAccessSchema = z.object({
   password: z.string().min(6, "A nova senha deve ter pelo menos 6 caracteres"),
   confirmPassword: z.string().min(6, "A confirmação deve ter pelo menos 6 caracteres"),
@@ -30,6 +32,7 @@ type FirstAccessFormData = z.infer<typeof firstAccessSchema>
 
 export default function FirstAccessPage() {
   const navigate = useNavigate()
+  const { user, login } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
 
@@ -47,15 +50,26 @@ export default function FirstAccessPage() {
       await authService.changePassword(data.password)
       
       // Atualiza o dado do usuário no localStorage para remover o flag
-      const storedUser = localStorage.getItem("@BarberFlow:user")
+      const storedUser = localStorage.getItem("@SeuCorte:user")
       if (storedUser) {
-        const user = JSON.parse(storedUser)
-        user.forcePasswordChange = false
-        localStorage.setItem("@BarberFlow:user", JSON.stringify(user))
-      }
+        const updatedUser = JSON.parse(storedUser)
+        updatedUser.forcePasswordChange = false
+        
+        // Atualiza localStorage
+        localStorage.setItem("@SeuCorte:user", JSON.stringify(updatedUser))
+        
+        // Atualiza o contexto global para refletir a mudança imediatamente
+        login(updatedUser)
 
-      toast.success("Senha atualizada com sucesso!")
-      navigate("/estoque")
+        toast.success("Senha atualizada com sucesso!")
+
+        // Redirecionamento baseado no role
+        if (updatedUser.role === 'BARBER') {
+          navigate("/agenda")
+        } else {
+          navigate("/dashboard")
+        }
+      }
     } catch (error: any) {
       // O toast de erro genérico agora é disparado pelo interceptor
     } finally {

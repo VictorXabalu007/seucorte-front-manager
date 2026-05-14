@@ -34,6 +34,7 @@ export default function AgendaPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [professionals, setProfessionals] = useState<Professional[]>([])
   const [services, setServices] = useState<Service[]>([])
+  const [products, setProducts] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   // Filters
@@ -118,12 +119,14 @@ export default function AgendaPage() {
   const fetchInitialData = useCallback(async () => {
     if (!unidadeId) return
     try {
-        const [profs, svcs] = await Promise.all([
+        const [profs, svcs, prods] = await Promise.all([
             agendaService.getProfessionals(unidadeId),
             agendaService.getServices(unidadeId),
+            agendaService.getProducts(unidadeId),
         ])
         setProfessionals(profs)
         setServices(svcs)
+        setProducts(prods)
     } catch (error) {
         console.error(error)
         toast.error("Erro ao carregar dados auxiliares")
@@ -168,7 +171,8 @@ export default function AgendaPage() {
         amount: Number(data.amount),
         notes: data.notes,
         clienteId: data.clientId || undefined,
-      } as any)
+        unidadeId: unidadeId || undefined,
+      })
       await fetchData()
       setIsEditOpen(false)
       setEditingAppointment(null)
@@ -201,8 +205,8 @@ export default function AgendaPage() {
         amount: Number(data.amount),
         notes: data.notes,
         clienteId: data.clientId || undefined,
-        unidadeId,
-      } as any)
+        unidadeId: unidadeId || "",
+      })
       await fetchData()
       setIsCreateOpen(false)
       toast.success("Agendamento criado com sucesso!")
@@ -258,15 +262,20 @@ export default function AgendaPage() {
   const handleUpdateAppointmentServices = async (id: string, servicos: any[]) => {
     try {
       const updatedAppointment = await agendaService.updateAppointment(id, { servicos }) as Appointment
-      
-      // Atualizamos os dados locais
       setAppointments(prev => prev.map(a => a.id === id ? updatedAppointment : a))
-      
-      // Também atualizamos o `checkoutAppointment` para que o sheet reflita os novos dados
       setCheckoutAppointment(updatedAppointment)
-      
-      // Opcional: recarregar tudo para garantir contadores e paginação corretos
       fetchData()
+    } catch (error) {
+      console.error(error)
+      throw error
+    }
+  }
+
+  const handleUpdateAppointmentProducts = async (id: string, produtos: any[]) => {
+    try {
+      const updatedAppointment = await agendaService.updateAppointment(id, { produtos }) as Appointment
+      setAppointments(prev => prev.map(a => a.id === id ? updatedAppointment : a))
+      setCheckoutAppointment(updatedAppointment)
     } catch (error) {
       console.error(error)
       throw error
@@ -388,8 +397,10 @@ export default function AgendaPage() {
         isOpen={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}
         appointment={checkoutAppointment}
         services={services}
+        products={products}
         onCheckout={handleCheckoutConfirm}
         onUpdateServices={handleUpdateAppointmentServices}
+        onUpdateProducts={handleUpdateAppointmentProducts}
       />
     </AdminLayout>
   )

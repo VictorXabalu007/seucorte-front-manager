@@ -24,6 +24,133 @@ import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { getUser } from "@/lib/auth"
 import { DeleteConfirmationModal } from "@/components/ui/DeleteConfirmationModal"
+import { Trash2 } from "lucide-react"
+
+const FaturaCard = ({ fatura, handlePayFatura, handleDeleteFatura, isFutureMonth, isDuplicate, assinatura }: any) => {
+  const formatMoney = (val: number) => {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
+  }
+
+  const safeFormat = (date: any, formatStr: string) => {
+    try {
+      if (!date) return "N/A"
+      const d = new Date(date)
+      if (isNaN(d.getTime())) return "N/A"
+      return format(d, formatStr, { locale: ptBR })
+    } catch (e) {
+      return "N/A"
+    }
+  }
+
+  const venc = fatura.dataVencimento ? new Date(fatura.dataVencimento) : null;
+  const mesExtenso = venc ? format(venc, "MMMM", { locale: ptBR }) : "";
+  const ano = venc ? format(venc, "yyyy") : "";
+  const shortId = fatura.id ? `#${fatura.id.slice(-5)}` : "";
+
+  return (
+    <div 
+      className={cn(
+        "group bg-card p-5 rounded-3xl border transition-all duration-300 relative overflow-hidden",
+        fatura.status === 'PAGA' ? "border-emerald-500/20 bg-emerald-500/[0.04]" :
+        fatura.status === 'VENCIDA' ? "border-destructive/20 bg-destructive/[0.02]" :
+        isFutureMonth ? "border-primary/20 bg-primary/[0.02]" : "border-amber-500/20 bg-amber-500/[0.02]"
+      )}
+    >
+      {/* Mês em destaque no fundo */}
+      <div className="absolute -bottom-2 -right-2 opacity-[0.03] pointer-events-none group-hover:scale-110 transition-transform duration-700">
+        <h3 className="text-6xl font-black uppercase italic">{mesExtenso}</h3>
+      </div>
+
+      <div className="flex justify-between items-start mb-4">
+        <div className="flex items-center gap-3">
+          <div className={cn(
+            "size-10 rounded-2xl flex items-center justify-center shadow-inner transition-transform group-hover:scale-110",
+            fatura.status === 'PAGA' ? "bg-emerald-500/10 text-emerald-500" :
+            fatura.status === 'VENCIDA' ? "bg-destructive/10 text-destructive" :
+            isFutureMonth ? "bg-primary/10 text-primary" : "bg-amber-500/10 text-amber-500"
+          )}>
+            {fatura.status === 'PAGA' ? <CheckCircle2 className="size-5" /> : 
+             fatura.status === 'VENCIDA' ? <AlertCircle className="size-5" /> : <Clock className="size-5" />}
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">Vencimento</p>
+              <span className="text-[8px] font-mono text-muted-foreground/30">{shortId}</span>
+            </div>
+            <p className="text-sm font-bold uppercase">{mesExtenso} {ano}</p>
+            <p className="text-[10px] text-muted-foreground font-medium">{safeFormat(fatura.dataVencimento, "dd/MM/yyyy")}</p>
+          </div>
+        </div>
+        <div className="text-right">
+          <p className={cn(
+            "text-xl font-black tracking-tighter",
+            fatura.status === 'PAGA' ? "text-emerald-500" :
+            fatura.status === 'VENCIDA' ? "text-destructive" :
+            isFutureMonth ? "text-primary" : "text-amber-500"
+          )}>
+            {formatMoney(Number(fatura.valor))}
+          </p>
+          <p className="text-[9px] font-black uppercase tracking-widest opacity-60">
+            {fatura.status === 'PAGA' ? "Recebido" : "Esperado"}
+          </p>
+        </div>
+      </div>
+
+      <div className="pt-4 border-t border-border/30 flex items-center justify-between gap-4">
+        <div className="flex flex-col">
+          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">Status</p>
+          <p className={cn(
+            "text-[11px] font-black uppercase tracking-tighter",
+            fatura.status === 'PAGA' ? "text-emerald-500" :
+            fatura.status === 'VENCIDA' ? "text-destructive" :
+            assinatura.endDate ? "text-muted-foreground/50" : "text-amber-500"
+          )}>
+            {fatura.status === 'PAGA' 
+              ? `Pago em ${safeFormat(fatura.dataPagamento, "dd/MM/yy")}` 
+              : assinatura.endDate 
+                ? "Cobrança Suspensa"
+                : fatura.status === 'VENCIDA' ? "Inadimplente" : isFutureMonth ? "Mês Futuro" : "Pendente"}
+          </p>
+        </div>
+        
+        {fatura.status !== 'PAGA' && !assinatura.endDate && (
+          <div className="flex items-center gap-2 relative z-10">
+            {isDuplicate && (
+              <Button 
+                onClick={() => handleDeleteFatura(fatura)}
+                variant="ghost" 
+                size="icon" 
+                className="size-9 rounded-xl text-destructive hover:bg-destructive/10 transition-colors"
+                title="Esta fatura parece ser uma duplicata. Clique para remover."
+              >
+                <Trash2 className="size-4" />
+              </Button>
+            )}
+            
+            <Button 
+              onClick={() => handlePayFatura(fatura.id)}
+              size="sm" 
+              className={cn(
+                "rounded-xl h-9 text-[10px] font-black uppercase tracking-widest px-4 shadow-sm",
+                fatura.status === 'VENCIDA' ? "bg-destructive text-white hover:bg-destructive/90" : 
+                isFutureMonth ? "bg-primary text-primary-foreground hover:bg-primary/90" :
+                "bg-foreground text-background hover:bg-foreground/90"
+              )}
+            >
+              Pagar Agora
+            </Button>
+          </div>
+        )}
+
+        {isFutureMonth && (
+          <div className="bg-primary/5 px-2 py-1 rounded-lg border border-primary/10">
+            <p className="text-[8px] font-black text-primary uppercase tracking-tighter">Faturamento futuro</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
 
 export default function AssinanteHistoricoPage() {
   const { id } = useParams()
@@ -33,6 +160,8 @@ export default function AssinanteHistoricoPage() {
   const [assinatura, setAssinatura] = useState<any>(null)
   const [faturas, setFaturas] = useState<any[]>([])
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false)
+  const [faturaToDelete, setFaturaToDelete] = useState<any>(null)
+  const [isDeleteFaturaModalOpen, setIsDeleteFaturaModalOpen] = useState(false)
 
   const loadData = useCallback(async () => {
     if (!id) return
@@ -113,10 +242,49 @@ export default function AssinanteHistoricoPage() {
     }
   }
 
+  const handleDeleteFaturaRequest = (fatura: any) => {
+    setFaturaToDelete(fatura)
+    setIsDeleteFaturaModalOpen(true)
+  }
+
+  const handleConfirmDeleteFatura = async () => {
+    if (!faturaToDelete) return
+    setIsDeleteFaturaModalOpen(false)
+
+    try {
+      setIsLoading(true)
+      await planoService.deleteFatura(faturaToDelete.id)
+      toast.success("Fatura duplicada removida com sucesso!")
+      loadData()
+    } catch(err: any) {
+      const msg = err.response?.data?.message || err.message || "Falha ao excluir fatura"
+      toast.error(msg)
+    } finally {
+      setIsLoading(false)
+      setFaturaToDelete(null)
+    }
+  }
+
+  const checkIsDuplicate = useCallback((fatura: any) => {
+    if (fatura.status === 'PAGA') return false
+    const date = fatura.dataVencimento ? new Date(fatura.dataVencimento) : null
+    if (!date) return false
+
+    return faturas.some(f => 
+      f.id !== fatura.id && 
+      f.dataVencimento && 
+      new Date(f.dataVencimento).getMonth() === date.getMonth() &&
+      new Date(f.dataVencimento).getFullYear() === date.getFullYear()
+    )
+  }, [faturas])
+
   if (!assinatura) return null
 
   const totalPago = faturas.filter(f => f.status === 'PAGA').reduce((acc, f) => acc + Number(f.valor), 0)
   const totalPendente = faturas.filter(f => f.status === 'PENDENTE' || f.status === 'VENCIDA').reduce((acc, f) => acc + Number(f.valor), 0)
+
+  const agora = new Date();
+  const fimDesteMes = new Date(agora.getFullYear(), agora.getMonth() + 1, 0, 23, 59, 59);
 
   return (
     <AdminLayout>
@@ -240,111 +408,110 @@ export default function AssinanteHistoricoPage() {
           </div>
         </div>
 
-        {/* Invoice Timeline */}
-        <div className="space-y-6">
-          <div className="flex items-center justify-between gap-3">
-             <div className="flex items-center gap-3">
-                <div className="size-8 rounded-xl bg-muted flex items-center justify-center text-muted-foreground shadow-sm">
-                   <History className="size-4" />
+        {/* Invoice Sections */}
+        <div className="space-y-12">
+          
+          {/* 1. Pendências e Vencidas (Inclui o mês atual) */}
+          {faturas.some(f => f.status !== 'PAGA' && (f.status === 'VENCIDA' || !f.dataVencimento || new Date(f.dataVencimento) <= fimDesteMes)) && (
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="size-8 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500 shadow-sm">
+                   <AlertCircle className="size-4" />
                 </div>
-                <h2 className="text-xl font-black tracking-tight uppercase tracking-widest text-muted-foreground/60 text-sm">Histórico de Cobranças</h2>
-             </div>
-          </div>
+                <h2 className="text-xl font-black tracking-tight uppercase tracking-widest text-amber-500/80 text-sm">Contas em Aberto</h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {faturas
+                  .filter(f => f.status !== 'PAGA' && (f.status === 'VENCIDA' || !f.dataVencimento || new Date(f.dataVencimento) <= fimDesteMes))
+                  .map((fatura) => (
+                    <FaturaCard 
+                      key={fatura.id} 
+                      fatura={fatura} 
+                      handlePayFatura={handlePayFatura} 
+                      handleDeleteFatura={handleDeleteFaturaRequest}
+                      isFutureMonth={false} 
+                      isDuplicate={checkIsDuplicate(fatura)}
+                      assinatura={assinatura} 
+                    />
+                  ))
+                }
+              </div>
+            </div>
+          )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {faturas.length === 0 ? (
-               <div className="col-span-full py-20 text-center bg-card/20 rounded-3xl border border-dashed border-border/50">
-                  <CreditCard className="size-12 mx-auto text-muted-foreground/30 mb-4" />
-                  <p className="text-muted-foreground font-medium">Nenhuma fatura encontrada.</p>
+          {/* 2. Próximos Faturamentos (Meses seguintes) */}
+          {faturas.some(f => f.status === 'PENDENTE' && f.dataVencimento && new Date(f.dataVencimento) > fimDesteMes) && (
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="size-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-sm">
+                   <Zap className="size-4" />
+                </div>
+                <h2 className="text-xl font-black tracking-tight uppercase tracking-widest text-primary/80 text-sm">Próximos Faturamentos</h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {faturas
+                  .filter(f => f.status === 'PENDENTE' && f.dataVencimento && new Date(f.dataVencimento) > fimDesteMes)
+                  .map((fatura) => (
+                    <FaturaCard 
+                      key={fatura.id} 
+                      fatura={fatura} 
+                      handlePayFatura={handlePayFatura} 
+                      handleDeleteFatura={handleDeleteFaturaRequest}
+                      isFutureMonth={true} 
+                      isDuplicate={checkIsDuplicate(fatura)}
+                      assinatura={assinatura} 
+                    />
+                  ))
+                }
+              </div>
+            </div>
+          )}
+
+          {/* 3. Histórico de Pagos */}
+          <div className="space-y-6">
+            <div className="flex items-center gap-3">
+              <div className="size-8 rounded-xl bg-muted flex items-center justify-center text-muted-foreground shadow-sm">
+                 <History className="size-4" />
+              </div>
+              <h2 className="text-xl font-black tracking-tight uppercase tracking-widest text-muted-foreground/60 text-sm">Histórico de Pagamentos</h2>
+            </div>
+
+            {faturas.filter(f => f.status === 'PAGA').length === 0 ? (
+               <div className="py-10 text-center bg-card/20 rounded-3xl border border-dashed border-border/50">
+                  <p className="text-muted-foreground text-xs font-medium uppercase tracking-widest">Nenhum pagamento registrado ainda.</p>
                </div>
             ) : (
-              faturas.map((fatura) => {
-                const venc = fatura.dataVencimento ? new Date(fatura.dataVencimento) : null;
-                const isNextMonth = fatura.status === 'PENDENTE' && venc && venc > new Date();
-                return (
-                  <div 
-                    key={fatura.id} 
-                    className={cn(
-                      "group bg-card p-5 rounded-3xl border transition-all duration-300 relative overflow-hidden",
-                      fatura.status === 'PAGA' ? "border-emerald-500/20 bg-emerald-500/[0.02]" :
-                      fatura.status === 'VENCIDA' ? "border-destructive/20 bg-destructive/[0.02]" :
-                      isNextMonth ? "border-primary/20 bg-primary/[0.02]" : "border-amber-500/20 bg-amber-500/[0.02]"
-                    )}
-                  >
-                    {isNextMonth && (
-                      <div className="absolute -top-3 -right-3 p-6 opacity-5 group-hover:scale-110 group-hover:rotate-12 transition-transform pointer-events-none">
-                        < Zap className="size-16" />
-                      </div>
-                    )}
-                    
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className={cn(
-                          "size-10 rounded-2xl flex items-center justify-center shadow-inner transition-transform group-hover:scale-110",
-                          fatura.status === 'PAGA' ? "bg-emerald-500/10 text-emerald-500" :
-                          fatura.status === 'VENCIDA' ? "bg-destructive/10 text-destructive" :
-                          isNextMonth ? "bg-primary/10 text-primary" : "bg-amber-500/10 text-amber-500"
-                        )}>
-                          {fatura.status === 'PAGA' ? <CheckCircle2 className="size-5" /> : 
-                           fatura.status === 'VENCIDA' ? <AlertCircle className="size-5" /> : <Clock className="size-5" />}
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">Vencimento</p>
-                          <p className="text-sm font-bold">{safeFormat(fatura.dataVencimento, "dd/MM/yyyy")}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className={cn(
-                          "text-xl font-black tracking-tighter",
-                          fatura.status === 'PAGA' ? "text-emerald-500" :
-                          fatura.status === 'VENCIDA' ? "text-destructive" :
-                          isNextMonth ? "text-primary" : "text-amber-500"
-                        )}>
-                          {formatMoney(Number(fatura.valor))}
-                        </p>
-                        <p className="text-[9px] font-black uppercase tracking-widest opacity-60">
-                          {fatura.status === 'PAGA' ? "Recebido" : "Esperado"}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="pt-4 border-t border-border/30 flex items-center justify-between gap-4">
-                      <div className="flex flex-col">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">Status</p>
-                        <p className={cn(
-                          "text-[11px] font-black uppercase tracking-tighter",
-                          fatura.status === 'PAGA' ? "text-emerald-500" :
-                          fatura.status === 'VENCIDA' ? "text-destructive" :
-                          assinatura.endDate ? "text-muted-foreground/50" : "text-amber-500"
-                        )}>
-                          {fatura.status === 'PAGA' 
-                            ? `Pago em ${safeFormat(fatura.dataPagamento, "dd/MM/yy")}` 
-                            : assinatura.endDate 
-                              ? "Cobrança Suspensa"
-                              : fatura.status === 'VENCIDA' ? "Inadimplente" : isNextMonth ? "Próximo Mês" : "Pendente"}
-                        </p>
-                      </div>
-                      
-                      {fatura.status !== 'PAGA' && !assinatura.endDate && (
-                        <Button 
-                          onClick={() => handlePayFatura(fatura.id)}
-                          size="sm" 
-                          className={cn(
-                            "rounded-xl h-9 text-[10px] font-black uppercase tracking-widest px-4 shadow-sm",
-                            fatura.status === 'VENCIDA' ? "bg-destructive text-white hover:bg-destructive/90" : 
-                            "bg-foreground text-background hover:bg-foreground/90"
-                          )}
-                        >
-                          Pagar Agora
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                )
-              })
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {faturas
+                  .filter(f => f.status === 'PAGA')
+                  .map((fatura) => (
+                    <FaturaCard 
+                      key={fatura.id} 
+                      fatura={fatura} 
+                      handlePayFatura={handlePayFatura} 
+                      handleDeleteFatura={handleDeleteFaturaRequest}
+                      isFutureMonth={false} 
+                      isDuplicate={checkIsDuplicate(fatura)}
+                      assinatura={assinatura} 
+                    />
+                  ))
+                }
+              </div>
             )}
           </div>
         </div>
+
+
+        {/* Modal de Confirmação de Exclusão de Fatura */}
+        <DeleteConfirmationModal 
+          isOpen={isDeleteFaturaModalOpen}
+          onOpenChange={setIsDeleteFaturaModalOpen}
+          onConfirm={handleConfirmDeleteFatura}
+          title="Remover Fatura Duplicada"
+          description="Esta fatura parece ser uma cobrança repetida para o mesmo mês. Deseja removê-la para limpar o histórico?"
+          itemName={faturaToDelete ? `Fatura de ${format(new Date(faturaToDelete.dataVencimento), "MMMM/yyyy", { locale: ptBR })}` : ""}
+          confirmLabel="Confirmar Remoção"
+        />
 
         {/* Modal de Confirmação de Cancelamento */}
         <DeleteConfirmationModal 
